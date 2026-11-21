@@ -38,9 +38,22 @@ async_session_factory = async_sessionmaker(
 async def init_db():
     """Initializes schema tables if necessary (useful for local dev and testing)."""
     try:
+        # Import models so Base.metadata is populated
+        import app.models  # noqa: F401
+        from app.services.news_collector import seed_initial_verified_news
+
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database schema initialized successfully.")
+
+        # Seed initial data for local development if empty
+        async with async_session_factory() as session:
+            try:
+                count = await seed_initial_verified_news(session)
+                if count > 0:
+                    logger.info(f"Seeded {count} initial verified news articles.")
+            except Exception as seed_err:
+                logger.warning(f"Seed news warning: {seed_err}")
     except Exception as e:
         logger.warning(f"Database schema initialization warning (e.g. offline PG): {e}")
 
