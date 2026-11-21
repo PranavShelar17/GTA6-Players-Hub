@@ -137,13 +137,18 @@ export function Header() {
             </div>
 
             {/* Quick Search Trigger */}
-            <Link
-              href="/news"
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("gta6:open-search"));
+                }
+              }}
               className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#171b26] transition-colors"
-              title="Search articles & discussions"
+              title="Search articles & discussions (Ctrl+K)"
+              aria-label="Search"
             >
               <Search className="w-4 h-4" />
-            </Link>
+            </button>
 
             {/* Account Actions / User Dropdown */}
             <div className="flex items-center gap-2 border-l border-[#1e2330] pl-3">

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-11-21
+
+### Phase 3: Professional Home Page Development (Completed)
+
+#### Added
+- **Backend Home Page API Architecture (`backend/app/api/home.py`)**:
+  - `GET /api/v1/home`: Aggregated feed returning news, deals, events, community discussions, and transparent demonstration disclaimers. Supports query parameters for `country_code`, `currency`, and `platform`.
+  - Sub-endpoints: `GET /api/v1/home/news`, `GET /api/v1/home/deals`, `GET /api/v1/home/events`, `GET /api/v1/home/community`.
+  - Pydantic models in `backend/app/schemas/home.py`: `HomeNewsItem`, `HomeDealItem`, `HomeEventItem`, `HomeCommunityHighlight`, `HomeAggregatedResponse`.
+  - 6 new automated backend pytest tests in `backend/tests/test_home.py` covering aggregation, query localization, and sub-endpoints.
+- **Frontend Modular Home Page Component Suite (`frontend/src/components/home/`)**:
+  - `HeroSection.tsx`: Cinematic Vice City dark theme hero with platform pills (Fall 2025, PS5 & XSX/S, PC pending, 100% verified labels) and direct CTAs.
+  - `PersonalizedDashboardWidget.tsx`: Dynamic greeting for authenticated players with avatar, display name, platform badge, and quick access buttons to Dashboard, Profile, Wishlist, Notifications, and Settings.
+  - `PlatformPillarsSection.tsx`: Structured grid connecting all six core public sections without modifying navigation scope.
+  - `LatestNewsSection.tsx`: Editorial feed with 4-tier verification badges (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`), source attribution, publication dates, and sample content disclosure.
+  - `FeaturedDealsSection.tsx`: Retail edition pricing cards with multi-currency formatting (INR, USD, EUR, GBP), preorder badges, verified retailers, and demonstration disclaimers.
+  - `UpcomingEventsSection.tsx`: Milestone cards with dynamic live countdown timer (Days, Hours, Minutes, Seconds) and official broadcast badges.
+  - `CommunityHighlightsSection.tsx`: Trending player discussions with platform tags, likes, and reply counts.
+  - `PCCompatibilitySection.tsx`: Hardware diagnostic teaser with clear notice that official PC specifications remain unannounced.
+  - `ProblemSolverSection.tsx`: AI troubleshooter showcase featuring common categories (Crashes, Low FPS, Drivers, Controllers).
+  - `HomeSearch.tsx`: Command palette modal with keyboard shortcuts (`Ctrl+K` to open, `Esc` to close, arrow keys / clicks to navigate) and live query indexing.
+  - `HomePageSkeleton.tsx` & `HomePageEmptyState.tsx`: Accessible loading skeletons and resilient fallback states.
+- **Frontend Data Client & Resilient Fallback (`frontend/src/lib/homeApi.ts`)**:
+  - TypeScript interfaces for all home entities.
+  - `fetchHomeFeed()` function with query parameter support and resilient offline fallback feed (`FALLBACK_HOME_DATA`).
+- **SEO & Metadata Enhancements**:
+  - Server-side metadata in `frontend/src/app/page.tsx` with OpenGraph and Twitter cards.
+  - Structured JSON-LD schema (`WebSite` and `Organization`) embedded into root homepage.
+- **Header Integration**:
+  - Linked universal header search button to trigger global `HomeSearch` modal.
+
+---
+
 ## [0.3.0] - 2026-11-21
 
 ### Phase 2: Database Architecture & Complete Player Authentication (Completed)

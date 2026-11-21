@@ -68,6 +68,98 @@ Tokens are issued by Supabase Auth upon successful login or registration and val
 Liveness probe returning application runtime status.
 - **Access**: Public
 - **Response**: `200 OK`
+
+---
+
+### 3.2 Homepage Data Feeds (`/home`)
+
+#### `GET /home`
+Aggregated homepage payload containing latest news, featured deals, upcoming milestones, and community highlights.
+- **Access**: Public (Supports optional query parameters for personalized/localized feeds)
+- **Query Parameters**:
+  - `country_code` *(optional, string, e.g. "IN", "US", "GB", "DE")*: Filter deals to specific retailer market.
+  - `currency` *(optional, string, e.g. "INR", "USD", "EUR", "GBP")*: Format and convert retail listings.
+  - `platform` *(optional, string, e.g. "PC", "PS5", "Xbox")*: Prioritize player platform offerings.
+- **Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "news": [
+      {
+        "id": "news-1",
+        "title": "Take-Two Reconfirms Grand Theft Auto VI Fall 2025 Release Window",
+        "slug": "take-two-reconfirms-gta6-fall-2025",
+        "summary": "Take-Two Interactive reconfirmed GTA VI is on track for Fall 2025 launch.",
+        "source_name": "Rockstar Newswire / Take-Two",
+        "source_url": "https://www.rockstargames.com/newswire",
+        "published_at": "2026-11-15T18:00:00Z",
+        "verification_status": "OFFICIAL",
+        "category": "Official Announcement",
+        "thumbnail_url": null
+      }
+    ],
+    "deals": [
+      {
+        "id": "deal-1",
+        "edition_name": "Standard Edition",
+        "platform": "PlayStation 5",
+        "country_code": "IN",
+        "current_price": 5999.0,
+        "currency": "INR",
+        "original_price": null,
+        "discount_percentage": 0,
+        "retailer_name": "PlayStation Store (India)",
+        "product_url": "/price-deals",
+        "last_checked_at": "2026-11-20T12:00:00Z",
+        "is_preorder": true
+      }
+    ],
+    "events": [
+      {
+        "id": "evt-1",
+        "event_name": "GTA VI Trailer 2 & Gameplay Deep Dive",
+        "category": "Milestone",
+        "date_string": "Early 2026",
+        "start_time_iso": "2026-03-01T14:00:00Z",
+        "timezone": "UTC",
+        "description": "Anticipated second official trailer showcasing Leonida geography.",
+        "is_official": false
+      }
+    ],
+    "community": [
+      {
+        "id": "comm-1",
+        "title": "Map Scale & Density: Leonida vs San Andreas & RDR 2",
+        "author_username": "ViceCityNavigator",
+        "author_avatar_url": null,
+        "author_platform": "PS5",
+        "category": "Vice City Lore",
+        "published_at": "2026-11-18T10:00:00Z",
+        "replies_count": 52,
+        "likes_count": 147
+      }
+    ],
+    "disclaimer": "Demonstration data for layout and verification modeling. Live automated ingestion connects in Phase 4 and Phase 5."
+  },
+  "error": null,
+  "meta": { "timestamp": "...", "version": "1.0.0" }
+}
+```
+
+#### `GET /home/news`
+Fetch isolated homepage news articles with 4-tier verification labels.
+
+#### `GET /home/deals`
+Fetch localized retail edition listings with currency and platform parameters.
+
+#### `GET /home/events`
+Fetch upcoming GTA 6 milestones and countdown targets.
+
+#### `GET /home/community`
+Fetch trending player discussions from the community hub.
+
+---
 ```json
 {
   "success": true,
