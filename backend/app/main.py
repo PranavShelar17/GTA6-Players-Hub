@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import logger, setup_logging
+from app.core.database import init_db
 from app.api.router import api_router
 from app.middleware.error_handler import register_error_handlers
 
@@ -11,6 +12,7 @@ from app.middleware.error_handler import register_error_handlers
 async def lifespan(app: FastAPI):
     setup_logging()
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION} [{settings.APP_ENV}]")
+    await init_db()
     yield
     logger.info(f"Shutting down {settings.APP_NAME}")
 

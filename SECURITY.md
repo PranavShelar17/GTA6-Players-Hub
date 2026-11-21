@@ -1,76 +1,56 @@
-# GTA 6 Player Hub – Security & Compliance Architecture
+# GTA 6 Player Hub – Security & Threat Model Specification
 
-## 1. Threat Modeling & Attack Surface Analysis
+## 1. Authentication & Identity Protection
 
-As a gaming platform handling user accounts, community discussions, and automated data ingestion, GTA 6 Player Hub must defend against several core threats:
+### 1.1 Supabase Auth & JWT Architecture
+- Identity authentication is managed through Supabase GoTrue, ensuring modern industry standards (Argon2 / bcrypt password hashing, automated brute force prevention, cryptographically signed tokens).
+- Fast, stateless authorization is handled via JWT Bearer tokens:
+  - Header: `Authorization: Bearer <token>`
+  - Algorithms: `HS256` verified against `SUPABASE_JWT_SECRET`
+  - Validations: `exp` (expiration), `sub` (user_id UUID), `role` (`authenticated`).
+  - Tokens are never logged or stored in plain-text.
 
-| Threat Category | Potential Attack Vector | Applied Mitigation |
-| :--- | :--- | :--- |
-| **Authentication Hijacking** | Credential stuffing, brute force, token theft | Argon2id password hashing via Supabase Auth, JWT rotation, secure HTTP-only cookies, Redis token bucket rate limiting on `/auth/*`. |
-| **Cross-Site Scripting (XSS)** | Malicious scripts injected into community posts, bios, or comments | React automatic DOM escaping, DOMPurify HTML sanitization for rich text, strict Content Security Policy (CSP) headers. |
-| **SQL / ORM Injection** | Malicious inputs in search or query parameters | 100% parameterized queries via SQLAlchemy 2.0 ORM and Pydantic v2 type coercion. |
-| **Server-Side Request Forgery (SSRF)** | Malicious external image URLs or webhook callbacks | Strict URL parsing, image proxying, and validation against a strict protocol and host whitelist. |
-| **Prompt Injection / AI Jailbreaking** | User crafting adversarial inputs to force AI into illegal advice | Strict system instructions, input sanitization, separate vector context isolation, and post-generation response safety validation. |
-| **Denial of Service (DoS)** | Excessive API traffic, slowloris attacks | Nginx / Cloudflare edge rate limiting, FastAPI slowapi middleware, Redis-backed rate limiting. |
-| **Unsafe System Advice** | AI recommending risky BIOS tweaks or registry deletions | Explicit system guardrails instructing the AI to refuse destructive advice and explain hardware uncertainty. |
+### 1.2 Anti-Enumeration Protections
+- **Login Endpoint**: Authentication failures return a generic message: `"Invalid email or password."` Overly descriptive errors (such as "user does not exist") are strictly forbidden to prevent attacker username enumeration.
+- **Password Recovery**: Submitting `/forgot-password` always returns a generic confirmation: `"If an account is associated with this email, password reset instructions have been sent."` regardless of whether the email address is registered.
 
----
-
-## 2. Authentication & Authorization Architecture
-
-### 2.1 Token Lifecycle & Storage
-- **Access Tokens**: Short-lived JSON Web Tokens (15-minute expiration) containing user identity, verified email status, and role.
-- **Refresh Tokens**: Long-lived tokens (7-day sliding window) stored securely in `HttpOnly`, `SameSite=Lax`, `Secure` cookies, preventing client-side JavaScript access.
-- **Token Invalidation**: Server-side Redis blacklist tracking revoked tokens during password resets or suspicious activity.
-
-### 2.2 Role-Based Access Control (RBAC) & Object Permissions
-- **Public**: Can read verified news, check deals, use PC compatibility calculator, read community discussions, and access public error guides.
-- **Verified Player**: Can create community posts, submit comments, vote in polls, save wishlist items, bookmark news, and save PC compatibility reports.
-- **Moderator (Internal CLI / DB Role)**: Can review flagged community content and mute abusive accounts. No public admin web interface exists.
+### 1.3 Case-Insensitive Username Collision Prevention
+- Usernames are restricted to regex `^[a-zA-Z0-9_]{3,30}$`.
+- Database uniqueness is enforced using PostgreSQL's `LOWER()` index:
+  ```sql
+  CREATE UNIQUE INDEX idx_player_profiles_lower_username ON player_profiles (lower(username));
+  ```
+- This prevents impersonation attacks (e.g. `ViceCityLegend` vs `vicecitylegend`).
 
 ---
 
-## 3. Data Protection & Privacy Safeguards
+## 2. Row Level Security (RLS) Enforcement
 
-### 3.1 Data Minimization
-- We collect only essential user data: Email, chosen username, display name, and optional platform/country preference.
-- No real names, physical addresses, or financial payment details are ever processed or stored on our servers.
-- Deals Tracker redirects users directly to authorized retail websites; all transactions occur on external retailer domains.
+Database security is enforced at the PostgreSQL engine level via Supabase Row Level Security:
 
-### 3.2 Content Moderation & Abuse Prevention
-- **Automated Word Filter**: Pre-submission regex and dictionary scanning for hate speech, harassment, doxxing, and malicious links.
-- **Reporting Workflow**: Any registered player can flag offensive posts or comments. Flagged items are automatically suppressed when reports exceed threshold.
-- **User Muting & Blocking**: Two-way blocking prevents blocked users from seeing each other's posts or sending replies.
-
----
-
-## 4. AI Safety & Guardrails Engine
-
-The Gaming Problem Solver (`/support`) incorporates strict safety guardrails:
-
-1. **System Guardrails**:
-   ```text
-   You are the GTA 6 Player Hub Technical Problem Solver.
-   You provide verified, safe troubleshooting advice for gaming issues.
-   RULES:
-   1. NEVER suggest modifying BIOS settings, flashing firmware, or modifying Windows registry keys that can prevent system boot.
-   2. NEVER recommend downloading executables from unverified third-party sites.
-   3. Always state clearly that GTA 6 PC requirements are not officially confirmed.
-   4. If an error is ambiguous, state your uncertainty and suggest safe steps first (e.g. clean driver install, verifying game files).
-   ```
-2. **Output Sanitation**: Generated responses are scanned for blacklisted system commands (`reg delete`, `format`, `del /s`) before being returned to the user.
+1. **`player_profiles`**:
+   - `SELECT`: Public profiles are visible to all; private profiles are visible only to `auth.uid() = user_id`.
+   - `INSERT / UPDATE / DELETE`: Strictly constrained to `auth.uid() = user_id`.
+2. **`player_preferences`**:
+   - `SELECT / INSERT / UPDATE / DELETE`: Accessible exclusively by `auth.uid() = user_id`.
+3. **`player_activities`**:
+   - `SELECT / INSERT`: Accessible exclusively by `auth.uid() = user_id`.
+4. **Storage (`avatars` bucket)**:
+   - Uploads are path-restricted to `bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text`.
+   - Users can never overwrite or delete another user's avatar.
 
 ---
 
-## 5. Security Headers & Network Policies
+## 3. Media Upload Safeguards
 
-The following HTTP response headers are enforced globally across all Next.js and FastAPI routes:
+Avatar uploads on `POST /api/v1/users/me/avatar` enforce strict multi-tier verification:
+- **MIME Type Whitelist**: Only `image/jpeg`, `image/png`, `image/webp`, and `image/gif` are accepted. Executables, scripts, HTML, or SVG files with embedded script tags are rejected with HTTP 400.
+- **File Size Limit**: Strictly bounded at **2 MB** (2,097,152 bytes). Oversized payloads are rejected before processing.
+- **Sanitized Output**: Files are encoded safely or stored in dedicated user-isolated storage buckets.
 
-```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Referrer-Policy: strict-origin-when-cross-origin
-Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-```
+---
+
+## 4. Secret Management & Zero-Leakage Policy
+
+- **`SUPABASE_SERVICE_ROLE_KEY`**: Strictly reserved for server-side administrative tasks. It is **NEVER** imported in frontend client code or exposed in `NEXT_PUBLIC_*` variables.
+- **Startup Audit**: The backend validates required environment variables at boot and hides secret values in logs.

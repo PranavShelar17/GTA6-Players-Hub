@@ -25,15 +25,15 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 
 ### Supporting Global Routes
 - **Player Account & Dashboard (`/dashboard`)**: Profile customisation, saved hardware reports, bookmarks, wishlist, and notification control center.
-- **Authentication**: Sign In (`/login`), Registration (`/register`), and Password Recovery (`/forgot-password`).
+- **Authentication**: Sign In (`/login`), Registration (`/register`), Password Recovery (`/forgot-password`), Password Reset (`/reset-password`), Email Verification (`/auth/verify-email`), and Auth Callback (`/auth/callback`).
 - **User Hubs**: Profile (`/profile`), Settings (`/settings`), Notifications (`/notifications`), and Wishlist (`/wishlist`).
 
 ---
 
 ## 3. Technology Stack Summary
 
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide Icons, TanStack Query.
-- **Backend**: Python 3.14 / 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 (Async), Alembic.
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide Icons, `@supabase/ssr`, `@supabase/supabase-js`.
+- **Backend**: Python 3.14 / 3.13, FastAPI, Pydantic v2, SQLAlchemy 2.0 (Async), Alembic, PyJWT.
 - **Database & Auth**: PostgreSQL 16+ with `pgvector`, Supabase Auth & Storage, Row-Level Security (RLS).
 - **Asynchronous Processing**: Redis 7, Celery & Celery Beat background workers.
 - **AI Engine**: Google Gemini API via official `google-genai` SDK with RAG pipeline.
@@ -41,16 +41,18 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 
 ---
 
-## 4. Current Status: Phase 1 Completed (Awaiting Phase 2 Approval)
+## 4. Current Status: Phase 2 Completed (Awaiting Phase 3 Approval)
 
 - **Phase 0 (Planning & Master Architecture)**: `COMPLETED & APPROVED`
-- **Phase 1 (Project Foundation & Website Design)**: `COMPLETED (Awaiting Approval)`
-  - Next.js 15 App Router frontend fully configured with Vice City / dark gaming theme.
-  - FastAPI backend configured with CORS, structured logging, and health/readiness probes.
-  - All 6 core page layouts and 8 supporting route shells fully rendered and typechecked.
-  - Reusable UI component library created (Buttons, Cards, Badges, Inputs, Skeletons, Empty & Error states).
-  - Frontend-to-backend live connection hook and status pill integrated.
-  - 100% test pass rate (pytest backend suite + Next.js production build with 18 static pages).
+- **Phase 1 (Project Foundation & Website Design)**: `COMPLETED & APPROVED`
+- **Phase 2 (Database Architecture & Complete Player Authentication)**: `COMPLETED`
+  - PostgreSQL & Supabase database architecture implemented with SQLAlchemy 2.0 models and Alembic migrations.
+  - Supabase Row Level Security (RLS) policies configured for `player_profiles`, `player_preferences`, `player_activities`, and Storage.
+  - Complete authentication workflows operational (Registration, Email Verification, Login, Logout, Forgot Password, Password Reset).
+  - Player Profile page (`/profile`) with avatar upload/removal and inline profile editing.
+  - Personal Player Dashboard (`/dashboard`) with completion indicator, security status, and actionable empty states.
+  - Account Settings (`/settings`) with regional preferences, notification controls, password updates, and account deletion.
+  - 100% test pass rate: 13/13 backend pytest suite + 21/21 Next.js production build static/dynamic routes.
 
 ---
 
@@ -59,21 +61,21 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 Refer to [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for detailed instructions.
 
 ### Prerequisites
-- Node.js >= 20.x (Current: `v24.21.0`)
-- Python >= 3.11 (Current: `3.14.7`)
+- Node.js >= 20.x (Current: `v22.18.0`)
+- Python >= 3.11 (Current: `3.13.0`)
 - Git
 
 ### One-Click Development Startup Scripts (PowerShell)
 
 ```powershell
 # 1. Run all backend and frontend quality checks
-.\scripts\test-all.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\test-all.ps1
 
 # 2. Start the FastAPI backend server (Port 8000)
-.\scripts\start-backend.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\start-backend.ps1
 
 # 3. In a separate terminal, start the Next.js frontend (Port 3000)
-.\scripts\start-frontend.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\start-frontend.ps1
 ```
 
 Once started:
@@ -98,9 +100,4 @@ Once started:
 - [CHANGELOG.md](CHANGELOG.md) – Project versioning and chronological release milestones.
 - [Phase 0 Report](docs/reports/PHASE_0_COMPLETION_REPORT.md) – Initial audit findings and sign-off report.
 - [Phase 1 Report](docs/reports/PHASE_1_COMPLETION_REPORT.md) – Foundation & design system completion report.
-
----
-
-## 7. License & Disclaimers
-
-GTA 6 Player Hub is an independent community and intelligence platform. Grand Theft Auto, GTA VI, Rockstar Games, and Take-Two Interactive are trademarks or registered trademarks of Take-Two Interactive Software, Inc. This project is not affiliated with, endorsed by, or sponsored by Rockstar Games or Take-Two Interactive.
+- [Phase 2 Report](docs/reports/PHASE_2_COMPLETION_REPORT.md) – Database & authentication completion report.

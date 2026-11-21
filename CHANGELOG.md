@@ -7,45 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-11-21
+
+### Phase 2: Database Architecture & Complete Player Authentication (Completed)
+
+#### Added
+- **Database Architecture (SQLAlchemy 2.0 + Alembic + Supabase RLS)**:
+  - Created SQLAlchemy async entity models for `PlayerProfile`, `PlayerPreferences`, and `PlayerActivity`.
+  - Configured platform-agnostic `GUID` type decorator supporting native PostgreSQL UUIDs and SQLite for test environments.
+  - Initialized Alembic async migration suite and generated revision `0001_phase_2`.
+  - Authored `backend/supabase_schema_rls.sql` with PostgreSQL Row Level Security (RLS) policies for all player tables and the `avatars` storage bucket.
+  - Implemented automatic profile provisioning database trigger `handle_new_player()` on `auth.users` insert.
+- **FastAPI Player Identity & Profile Endpoints (`/api/v1/users`)**:
+  - `GET /api/v1/users/me`: Current player account, profile, preferences, and recent security logs.
+  - `POST /api/v1/users/sync`: Initializer endpoint for new authenticated sessions.
+  - `GET /api/v1/users/me/profile` & `PUT /api/v1/users/me/profile`: Player profile retrieval and updates.
+  - `GET /api/v1/users/me/preferences` & `PUT /api/v1/users/me/preferences`: Regional, platform, and notification preference controls.
+  - `POST /api/v1/users/me/avatar`: Multi-part avatar upload with MIME validation (JPEG, PNG, WEBP, GIF) and 2MB limit.
+  - `DELETE /api/v1/users/me/avatar`: Avatar reset endpoint.
+  - `GET /api/v1/users/me/activity`: Audit log retrieval.
+  - `GET /api/v1/users/check-username`: Live username availability and format validation.
+  - `DELETE /api/v1/users/me`: Secure account deletion workflow.
+- **Authentication & Security Engine**:
+  - Server-side Supabase JWT verification dependency using `HS256` signature verification, `exp` check, and UUID extraction.
+  - Anti-enumeration protection on login and password reset routes.
+  - Case-insensitive username uniqueness enforcement (`lower(username)`).
+- **Frontend Authentication Architecture (Next.js 15 + Supabase SSR)**:
+  - Configured browser, server, and middleware Supabase clients (`@supabase/ssr`).
+  - Built `AuthProvider` managing global session state, tokens, profile caching, and automatic fallback mode for local testing.
+  - Next.js middleware session refresh and route guard.
+  - Built interactive registration page (`/register`) with live password checklist and username verification.
+  - Built player sign in page (`/login`) with loading states and remember session support.
+  - Built password recovery page (`/forgot-password`) with safe anti-enumeration feedback.
+  - Built password reset page (`/reset-password`) with password strength checks.
+  - Built email verification notice page (`/auth/verify-email`) with resend cooldown.
+  - Built Next.js callback route handler (`/auth/callback`) for token code exchange.
+- **Player Experience Screens**:
+  - **Player Profile (`/profile`)**: Hero card with avatar preview, gamer badge, stats, and inline edit mode with bio character counter (0/500), country, platform, and visibility toggles.
+  - **Player Dashboard (`/dashboard`)**: Welcome banner, profile completion indicator (0-100%), account security badge, and clean empty state widgets for saved PC reports, wishlist, saved bulletins, and recent security logs.
+  - **Account Settings (`/settings`)**: Multi-tab management for Preferences (Currency, Country, Platform, Edition, Language), Notifications, Security (Change Password, Sign Out), and Danger Zone (Account Deletion with `DELETE` confirmation).
+  - Universal Header upgraded with dynamic player avatar / dropdown menu when authenticated, retaining Log In / Register when unauthenticated.
+- **Automated Testing Suite**:
+  - Added 10 new backend pytest tests in `backend/tests/test_users.py` (total 13/13 passing in < 1s).
+  - Validated frontend Next.js production build (`21/21 static & dynamic routes generated`, 0 errors).
+
+---
+
 ## [0.2.0] - 2026-11-21
 
 ### Phase 1: Project Foundation & Website Design (Completed)
-
-#### Added
-- **Frontend Core Architecture (Next.js 15 + React 19)**:
-  - Initialized Next.js App Router with TypeScript, Tailwind CSS v4, and Lucide React.
-  - Established shared **Vice City / Dark Gaming Theme** with deep charcoal backgrounds (`#090a0f`), warm white typography, and cinematic sunset accents (`#f97316`, `#f43f5e`).
-  - Implemented universal responsive `Header` and `Footer` with live API connection indicator and active route detection.
-  - Created reusable UI component primitives: `Button` (5 variants, 3 sizes), `Card`, `Badge` (4 truth tiers: official, verified, rumour, unconfirmed), `Input`, `Skeleton`, `EmptyState`, `ErrorState`, and `SectionHeader`.
-- **The Six Core Navigation Page Layouts**:
-  1. **Home (`/`)**: High-impact hero section, platform metric counters, platform pillar cards, latest news ticker, featured deals preview, upcoming milestone events, and community highlights.
-  2. **Gaming Community (`/community`)**: Discussion feed layout, post cards with upvoting and comment counts, topic filters, community standards sidebar, and protected action sign-in prompts.
-  3. **News & Updates (`/news`) & Detail (`/news/[slug]`)**: 4-tier verification labeling, featured announcement banner, searchable news grid, source citation links, and full article layout template.
-  4. **PC Compatibility (`/pc-compatibility`)**: Hardware spec builder (CPU, GPU, RAM, VRAM, Storage, Resolution), bottleneck analysis preview, budget upgrade planning tiers, and mandatory prominent disclaimer stating official PC requirements are unconfirmed.
-  5. **Problem Solver (`/problem-solver`)**: AI technical diagnostic interface layout, problem description input, category troubleshooting cards, suggested questions, and conversational window placeholder with safe advice protocols.
-  6. **Price & Deals (`/price-deals`)**: Multi-region selector (India/INR, USA/USD, UK/GBP, EU/EUR, UAE/AED), platform filters (PS5, Xbox, PC), edition pricing cards, discount badges, and historical price SVG trendline.
-- **Supporting Route Shells**:
-  - `/login`, `/register`, `/forgot-password`, `/profile`, `/settings`, `/notifications`, `/wishlist`, `/dashboard`.
-- **Backend Foundation (FastAPI + Pydantic v2)**:
-  - FastAPI application structure (`backend/app/main.py`) with structured logging and CORS configuration for Next.js origins.
-  - Universal JSON response envelope adhering to RFC 7807 problem details.
-  - `GET /api/v1/health`: Liveness probe reporting service status, version, and UTC timestamp.
-  - `GET /api/v1/health/ready`: Readiness probe verifying configuration and dependency readiness.
-  - Pytest async test suite (`backend/tests/test_health.py`) passing with 100% success.
-  - Production `Dockerfile`, `requirements.txt`, and `.env.example`.
-- **Frontend-to-Backend Connectivity**:
-  - Reusable API client (`frontend/src/lib/api.ts`) and polling hook (`frontend/src/hooks/useBackendHealth.ts`).
-  - Live status indicator displaying real-time backend API connectivity.
-- **Developer Automation**:
-  - PowerShell utility scripts for starting frontend, starting backend, and executing the full end-to-end test suite (`scripts/`).
+- Scaffolded Next.js 15 App Router frontend and FastAPI backend.
+- Built 6 core page layouts and 8 supporting route shells.
+- Established Vice City dark theme design system.
+- Passing pytest suite and Next.js production build.
 
 ---
 
 ## [0.1.0] - 2026-11-21
 
 ### Phase 0: Project Planning & Architecture (Completed)
-
-#### Added
-- Project governance, master planning, and full 12-specialist documentation suite.
-- Architecture blueprints, database ERD (24 tables with `pgvector`), and complete REST API catalog.
-- Git repository initialization and commit baseline pushed to `origin/main`.
+- Master architectural blueprints, schema specifications, and project scope definition.

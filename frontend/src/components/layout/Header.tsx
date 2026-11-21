@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   Menu, 
   X, 
@@ -14,9 +14,14 @@ import {
   Tag, 
   Users, 
   Newspaper,
-  CheckCircle2
+  CheckCircle2,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  ChevronDown
 } from "lucide-react";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
@@ -31,13 +36,39 @@ const NAV_ITEMS = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const { status: apiStatus, healthData } = useBackendHealth();
+  const { user, profile, isAuthenticated, signOut } = useAuth();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    setUserDropdownOpen(false);
+    setMobileMenuOpen(false);
+    await signOut();
+    router.push("/");
+  };
+
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "Player";
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#1c212e] bg-[#090a0f]/90 backdrop-blur-md">
@@ -114,30 +145,114 @@ export function Header() {
               <Search className="w-4 h-4" />
             </Link>
 
-            {/* Account Actions */}
+            {/* Account Actions / User Dropdown */}
             <div className="flex items-center gap-2 border-l border-[#1e2330] pl-3">
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Log In
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="primary" size="sm" className="gap-1.5">
-                  <User className="w-3.5 h-3.5" />
-                  Register
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-all text-left"
+                  >
+                    {profile?.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatar_url}
+                        alt={displayName}
+                        className="w-7 h-7 rounded-full object-cover border border-orange-500/40"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-orange-500 to-rose-600 text-white font-black text-xs flex items-center justify-center">
+                        {initials}
+                      </div>
+                    )}
+                    <span className="text-xs font-bold text-slate-200 max-w-[100px] truncate">
+                      {displayName}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#23293a] bg-[#0e111a] shadow-xl p-1.5 z-50 space-y-1">
+                      <div className="px-3 py-2 border-b border-[#1c212e]">
+                        <p className="text-xs font-bold text-white truncate">{displayName}</p>
+                        <p className="text-[11px] text-slate-400 truncate">@{profile?.username || "player"}</p>
+                      </div>
+
+                      <Link
+                        href="/profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <User className="w-4 h-4 text-orange-400" />
+                        Player Profile
+                      </Link>
+
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-cyan-400" />
+                        Account Dashboard
+                      </Link>
+
+                      <Link
+                        href="/settings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        Preferences & Settings
+                      </Link>
+
+                      <div className="border-t border-[#1c212e] pt-1">
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors text-left"
+                        >
+                          <LogOut className="w-4 h-4 text-rose-400" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" size="sm">
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button variant="primary" size="sm" className="gap-1.5">
+                      <User className="w-3.5 h-3.5" />
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
           {/* Mobile Menu Button */}
           <div className="flex xl:hidden items-center gap-2">
-            <Link
-              href="/login"
-              className="text-xs font-semibold px-2.5 py-1.5 rounded bg-orange-500/10 text-orange-400 sm:hidden"
-            >
-              Log In
-            </Link>
+            {!isAuthenticated ? (
+              <Link
+                href="/login"
+                className="text-xs font-semibold px-2.5 py-1.5 rounded bg-orange-500/10 text-orange-400 sm:hidden"
+              >
+                Log In
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard"
+                className="text-xs font-semibold px-2.5 py-1.5 rounded bg-orange-500/10 text-orange-400 sm:hidden"
+              >
+                Dashboard
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-[#171b26] transition-colors focus:outline-none"
@@ -161,6 +276,24 @@ export function Header() {
             </div>
           </div>
 
+          {/* If logged in on mobile, show user summary */}
+          {isAuthenticated && (
+            <div className="p-3 rounded-xl bg-[#141724] border border-[#23293a] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-rose-600 text-white font-bold text-xs flex items-center justify-center">
+                  {initials}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">{displayName}</p>
+                  <p className="text-[11px] text-slate-400">@{profile?.username || "player"}</p>
+                </div>
+              </div>
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="secondary" size="sm">Dashboard</Button>
+              </Link>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {NAV_ITEMS.map((item) => {
               const active = isActive(item.href);
@@ -183,17 +316,43 @@ export function Header() {
             })}
           </div>
 
-          <div className="pt-3 border-t border-[#1c212d] flex items-center gap-2">
-            <Link href="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="secondary" size="md" className="w-full">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="primary" size="md" className="w-full">
-                Register
-              </Button>
-            </Link>
+          <div className="pt-3 border-t border-[#1c212d]">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="secondary" size="md" className="w-full">
+                      Profile
+                    </Button>
+                  </Link>
+                  <Link href="/settings" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="md" className="w-full">
+                      Settings
+                    </Button>
+                  </Link>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full py-2.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-950/20 border border-rose-900/30 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="secondary" size="md" className="w-full">
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="primary" size="md" className="w-full">
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

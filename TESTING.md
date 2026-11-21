@@ -6,112 +6,51 @@ To ensure zero regressions, resilient API contracts, and an uncompromised user e
 
 ```
           / \
-         / E2E \       Playwright (Critical User Flows)
+         / E2E \       Playwright / Next.js Production Build Validation
         /-------\
-       /  Integ. \     pytest-asyncio + TestClient + Vitest Components
+       /  Integ. \     pytest-asyncio + TestClient + Mock Auth Fixtures
       /-----------\
-     /    Unit     \   pytest (Business Logic) + Vitest (UI Hooks & Utils)
+     /    Unit     \   pytest (Database Models & Validation) + Typecheck
     /---------------\
 ```
 
 ---
 
-## 2. Test Suites & Coverage Targets
+## 2. Test Execution Commands
 
-| Test Category | Target Coverage | Framework | Primary Targets |
-| :--- | :--- | :--- | :--- |
-| **Backend Unit** | > 85% | `pytest`, `pytest-mock` | Bottleneck analysis math, price discount calculations, currency normalizations, input validation. |
-| **Backend API** | > 90% | `httpx`, `pytest-asyncio` | REST route contracts, authentication middleware, status codes, error envelopes. |
-| **Frontend Unit** | > 80% | `vitest`, React Testing Library | Custom hooks, formatters, state reducers, UI components. |
-| **End-to-End (E2E)** | Key Paths | `playwright` | Registration/Login flow, PC Checker form submission, Deal filtering, Community post creation. |
-| **AI Safety & RAG** | 100% Guardrails | `pytest` eval suites | Test adversarial prompts, ensure refusal of dangerous tweaks, verify disclaimer presence. |
-
----
-
-## 3. Backend Test Suite Organization
-
-```
-backend/tests/
-├── conftest.py                   # Async test client, DB fixtures, mock auth tokens
-├── unit/
-│   ├── test_hardware_engine.py   # Test CPU/GPU bottleneck equations
-│   ├── test_pricing_engine.py    # Test INR conversion & discount algorithms
-│   └── test_ai_guardrails.py     # Test safety sanitizers and blacklist checks
-├── integration/
-│   ├── test_auth_routes.py       # Registration, login, profile updates
-│   ├── test_news_routes.py       # News query filters, bookmarking
-│   ├── test_deals_routes.py      # Deal listing, wishlist alerts
-│   ├── test_community_routes.py  # Post creation, comments, moderation flags
-│   └── test_support_routes.py    # Support chat endpoints & RAG context lookup
-└── e2e/
-    └── test_full_pipeline.py     # Celery sync to notification dispatch loop
+### Run Full System Test Runner (One-Click)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\test-all.ps1
 ```
 
-### Running Backend Tests
+### Run Backend Pytest Suite Only
 ```powershell
 cd backend
-pytest -v --cov=app --cov-report=term-missing
+.\venv\Scripts\pytest -v
 ```
 
----
-
-## 4. Frontend Test Suite Organization
-
-```
-frontend/tests/
-├── components/
-│   ├── HeroSection.test.tsx
-│   ├── PcCheckerForm.test.tsx
-│   └── DealCard.test.tsx
-├── hooks/
-│   ├── useDealsFilter.test.ts
-│   └── useHardwareCalc.test.ts
-└── e2e/
-    ├── home.spec.ts
-    ├── pc-checker.spec.ts
-    └── community.spec.ts
-```
-
-### Running Frontend Tests
+### Run Frontend Typecheck & Production Build Only
 ```powershell
 cd frontend
-npm run test          # Vitest Unit & Component tests
-npm run test:e2e      # Playwright End-to-End tests
+npm run build
 ```
 
 ---
 
-## 5. Manual QA Checklist for Each of the 6 Core Pages
+## 3. Backend Test Suite Coverage (`backend/tests/`)
 
-Before any release or phase completion sign-off:
+The backend test suite (`13 tests, 100% pass rate in < 1s`) validates:
 
-1. **Page 1 (Home)**:
-   - [ ] Hero countdown computes exact remaining time in local timezone.
-   - [ ] Breaking news banner loads official items first.
-   - [ ] Navigation bar links cleanly to all 5 other pages.
-   - [ ] Global search palette opens with `Cmd+K` or search bar click.
-
-2. **Page 2 (Gaming Community)**:
-   - [ ] Non-logged in visitors can view feed, but clicking Like/Comment prompts Login.
-   - [ ] Profanity and abuse keywords are blocked with a clear user notice.
-   - [ ] Image upload rejects files > 5MB and non-image MIME types.
-
-3. **Page 3 (News & Updates)**:
-   - [ ] Every article renders an explicit badge: `OFFICIAL`, `VERIFIED`, `RUMOUR`, or `UNCONFIRMED`.
-   - [ ] Original source attribution link opens in a new tab with `rel="noopener noreferrer"`.
-   - [ ] Filtering by category returns accurate subsets.
-
-4. **Page 4 (PC Compatibility Checker)**:
-   - [ ] Highlighting unconfirmed status disclaimer is prominently visible.
-   - [ ] Selecting unbalanced CPU/GPU triggers bottleneck percentage calculation.
-   - [ ] Upgrade suggestions adhere to the chosen budget tier.
-
-5. **Page 5 (Gaming Problem Solver)**:
-   - [ ] Submitting known error code (e.g., `ERR_GFX_D3D_INIT`) retrieves exact verified steps.
-   - [ ] Querying dangerous actions (e.g. "how to delete system32 or flash custom bios") is explicitly refused.
-   - [ ] Helpfulness feedback buttons trigger confirmation state.
-
-6. **Page 6 (Price & Deals Tracker)**:
-   - [ ] Switching country filter converts prices to local currency (INR, USD, EUR, etc.).
-   - [ ] Only verified authorized stores display the verification shield.
-   - [ ] Historical price chart renders all data points accurately on mobile and desktop.
+1. **`test_health_endpoint`**: Verifies HTTP 200, liveness payload, and metadata.
+2. **`test_readiness_endpoint`**: Verifies HTTP 200 and subsystem dependency checks.
+3. **`test_404_error_envelope`**: Verifies standard RFC 7807 error envelopes on non-existent routes.
+4. **`test_unauthenticated_access_rejected`**: Verifies HTTP 401 when requesting protected endpoints without a token.
+5. **`test_get_current_player_auto_initialization`**: Verifies first-time login automatically provisions `player_profiles` and `player_preferences`.
+6. **`test_check_username_availability`**: Verifies live username availability checking, format validation, and availability state.
+7. **`test_update_profile_and_username_conflict`**: Verifies User A can update profile, and User B is rejected with HTTP 409 Conflict when attempting to claim User A's username (case-insensitive).
+8. **`test_profile_validation_rules`**: Verifies strict Pydantic validation on username regex, platform whitelists, and lengths.
+9. **`test_update_preferences`**: Verifies updating currency, regional country code, and notification flags.
+10. **`test_avatar_upload_validation`**: Verifies valid PNG/JPEG uploads succeed, invalid MIME types return HTTP 400, and oversized files (>2MB) return HTTP 400.
+11. **`test_avatar_deletion`**: Verifies deleting custom avatar resets profile `avatar_url` to null.
+12. **`test_user_activity_logging`**: Verifies security activities are recorded in `player_activities`.
+13. **`test_account_deletion_workflow`**: Verifies user profile, preferences, and activity records are cleanly deleted upon request.

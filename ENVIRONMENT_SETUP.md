@@ -4,132 +4,78 @@
 
 GTA 6 Player Hub is developed cross-platform with first-class support for Windows 10/11, Linux (Ubuntu 22.04+), and macOS.
 
-### Validated Environment Components (Local Workstation Audit)
+### Validated Local Environment Components
 - **Operating System**: Windows (Host)
-- **Node.js**: `v24.21.0` (Supported)
-- **npm**: `11.19.0`
-- **Python**: `3.14.7` (Supported; requires virtual environment)
-- **Docker Desktop**: Active and operational
-- **Git**: `2.55.0.windows.5`
-
-> [!NOTE]
-> Because existing Docker containers occupy local ports `5432`, `5433`, `5434` (PostgreSQL) and `6379`, `6380` (Redis), GTA 6 Player Hub reserves dedicated ports:
-> - **PostgreSQL + pgvector**: Port `5435`
-> - **Redis**: Port `6381`
-> - **FastAPI Backend**: Port `8000`
-> - **Next.js Frontend**: Port `3000`
+- **Node.js**: `v22.18.0` / `v24.x` (Supported)
+- **npm**: `10.9.3` / `11.x`
+- **Python**: `3.13.0` / `3.14.x` (Isolated via `backend/venv`)
+- **Docker Desktop**: Optional (Local PostgreSQL / Redis containers)
+- **Git**: Active
 
 ---
 
-## 2. Docker Services Setup (PostgreSQL + pgvector & Redis)
+## 2. Environment Variables Configuration
 
-A project-level `docker-compose.yml` provides instant, isolated local services.
+### 2.1 Backend (`backend/.env`)
+Create `backend/.env` (or copy from `backend/.env.example`):
 
-Create `docker-compose.yml` in the root:
+```bash
+APP_NAME="GTA 6 Player Hub API"
+APP_ENV="development"
+APP_VERSION="1.0.0"
+DEBUG=True
+SECRET_KEY="development_secret_key_minimum_32_characters_long_for_security"
+CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
 
-```yaml
-version: '3.8'
+# Database (PostgreSQL + asyncpg)
+DATABASE_URL="postgresql+asyncpg://postgres:postgrespassword@localhost:5435/gta6playerhub"
+DATABASE_SYNC_URL="postgresql://postgres:postgrespassword@localhost:5435/gta6playerhub"
 
-services:
-  gta6-db:
-    image: pgvector/pgvector:pg16
-    container_name: gta6_postgres
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: gta6playerhub
-    ports:
-      - "5435:5432"
-    volumes:
-      - gta6_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gta6playerhub"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  gta6-redis:
-    image: redis:7-alpine
-    container_name: gta6_redis
-    restart: always
-    ports:
-      - "6381:6379"
-    volumes:
-      - gta6_redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  gta6_pgdata:
-  gta6_redisdata:
+# Supabase Auth Integration
+SUPABASE_URL="https://your-project-ref.supabase.co"
+SUPABASE_ANON_KEY="your-supabase-anon-key"
+SUPABASE_JWT_SECRET="your-supabase-jwt-secret-min-32-chars-for-dev"
+# NEVER expose service role key to frontend:
+SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
 ```
 
-### Start Local Services
-```powershell
-docker compose up -d
+### 2.2 Frontend (`frontend/.env.local`)
+Create `frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_APP_NAME="GTA 6 Player Hub"
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ---
 
-## 3. Backend Setup (FastAPI & Python)
+## 3. Database Setup & Migrations
 
+### Option A: Direct Supabase Cloud Project (Recommended)
+1. In your Supabase dashboard, navigate to the **SQL Editor**.
+2. Open and execute `backend/supabase_schema_rls.sql`.
+3. This creates all tables (`player_profiles`, `player_preferences`, `player_activities`), enables RLS, configures policies, sets up the auto-registration trigger, and initializes the `avatars` storage bucket.
+
+### Option B: Local PostgreSQL & Alembic Migrations
 ```powershell
-# 1. Navigate to backend directory
 cd backend
-
-# 2. Create isolated Python virtual environment
-python -m venv venv
-
-# 3. Activate virtual environment
-# Windows PowerShell:
 .\venv\Scripts\Activate.ps1
-# Linux/macOS:
-# source venv/bin/activate
-
-# 4. Install dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# 5. Run database migrations (when models are ready)
 alembic upgrade head
-
-# 6. Start development server
-uvicorn app.main:app --reload --port 8000
 ```
 
 ---
 
-## 4. Frontend Setup (Next.js 15 & React 19)
+## 4. One-Click Running & Testing
 
 ```powershell
-# 1. Navigate to frontend directory
-cd frontend
+# Run the complete test suite (Backend Pytest + Frontend Typecheck & Build)
+powershell -ExecutionPolicy Bypass -File .\scripts\test-all.ps1
 
-# 2. Install dependencies
-npm install
+# Start the FastAPI backend server (Port 8000)
+powershell -ExecutionPolicy Bypass -File .\scripts\start-backend.ps1
 
-# 3. Copy environment template
-cp ../.env.example .env.local
-
-# 4. Start Next.js development server
-npm run dev
+# Start the Next.js frontend development server (Port 3000)
+powershell -ExecutionPolicy Bypass -File .\scripts\start-frontend.ps1
 ```
-
----
-
-## 5. Verification Checklist
-
-To confirm your environment is fully operational:
-
-1. **Frontend**: Open `http://localhost:3000` -> Verify GTA 6 landing page renders without console errors.
-2. **Backend API**: Open `http://localhost:8000/docs` -> Verify Swagger UI lists all `/api/v1` endpoints.
-3. **API Health Check**: Run `curl http://localhost:8000/api/v1/health` -> Verify `{ "status": "healthy", "database": "connected", "redis": "connected" }`.
-4. **Database Vector Support**: Execute inside PostgreSQL container:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   SELECT * FROM pg_extension WHERE extname = 'vector';
-   ```

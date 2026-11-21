@@ -1,150 +1,237 @@
-# GTA 6 Player Hub – API Documentation & Interface Specifications
+# GTA 6 Player Hub – RESTful API Documentation
 
-## 1. RESTful Standards & Architectural Conventions
+## 1. Specification Overview
 
-- **Base URL**: `/api/v1`
-- **Content-Type**: `application/json`
-- **Character Encoding**: `UTF-8`
-- **Authentication**: Bearer Token in standard header (`Authorization: Bearer <Supabase_JWT>`)
-- **CORS Allowed Origins**: Defined via strict environment variable whitelist.
+The GTA 6 Player Hub REST API is served over HTTP/2 and HTTP/3 adhering to standard REST architectural principles. All endpoints follow the base prefix `/api/v1`.
 
-### 1.1 Universal Response Envelope
+### 1.1 Base URLs
+- **Local Development**: `http://localhost:8000/api/v1`
+- **Interactive Swagger UI**: `http://localhost:8000/api/v1/docs`
+- **ReDoc Interactive Reference**: `http://localhost:8000/api/v1/redoc`
+- **OpenAPI Schema Specification**: `http://localhost:8000/api/v1/openapi.json`
 
-All API endpoints produce a consistent JSON envelope adhering to industry best practices:
+### 1.2 Uniform Response Envelope
+All API endpoints return JSON adhering to a standardized envelope format:
 
 ```json
 {
   "success": true,
-  "data": {},
+  "data": { ... },
   "error": null,
   "meta": {
     "timestamp": "2026-11-21T12:00:00Z",
     "version": "1.0.0",
-    "request_id": "req_84f93a10"
+    "request_id": "req_01j7x4..."
   }
 }
 ```
 
-### 1.2 RFC 7807 Error Response Envelope
-
+When an error occurs (`success: false`):
 ```json
 {
   "success": false,
   "data": null,
   "error": {
-    "code": "RESOURCE_NOT_FOUND",
-    "message": "The requested article was not found.",
+    "code": "HTTP_409_CONFLICT",
+    "message": "Username is already claimed by another player.",
     "details": [
       {
-        "field": "slug",
-        "issue": "No article matches the provided slug 'rockstar-fall-2025'"
+        "field": "username",
+        "issue": "A player profile with this username already exists."
       }
     ]
   },
   "meta": {
     "timestamp": "2026-11-21T12:00:00Z",
-    "version": "1.0.0",
-    "request_id": "req_84f93a10"
+    "version": "1.0.0"
   }
 }
 ```
 
 ---
 
-## 2. Comprehensive Endpoint Catalog
+## 2. Authentication & Authorization
 
-### 2.1 Authentication & Profiles (`/auth` & `/profiles`)
-
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/auth/register` | Public | Register new player with email, password, and chosen username. |
-| `POST` | `/auth/login` | Public | Authenticate player and receive JWT session tokens. |
-| `POST` | `/auth/refresh` | Public | Exchange refresh token for fresh access token. |
-| `POST` | `/auth/logout` | Required | Invalidate current session token. |
-| `GET` | `/profiles/me` | Required | Retrieve current authenticated player profile and settings. |
-| `PATCH` | `/profiles/me` | Required | Update display name, bio, preferred platform, avatar, and currency. |
-| `GET` | `/profiles/{username}` | Public | Retrieve public player profile, badges, and community stats. |
-| `POST` | `/profiles/{username}/follow` | Required | Follow or unfollow a player. |
-| `POST` | `/profiles/{username}/block` | Required | Block user from feed interactions. |
+Protected endpoints require a Bearer token in the `Authorization` header:
+```http
+Authorization: Bearer <supabase_jwt_access_token>
+```
+Tokens are issued by Supabase Auth upon successful login or registration and validated server-side by FastAPI.
 
 ---
 
-### 2.2 News & Announcements (`/news`)
+## 3. Endpoints Catalog
 
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/news` | Public | Paginated news catalog with filters: `category`, `status` (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`), search query, and sorting. |
-| `GET` | `/news/{slug}` | Public | Retrieve single news article detail, metadata, and original source citation. |
-| `GET` | `/news/featured` | Public | High-priority announcements for the Home Page hero/ticker. |
-| `POST` | `/news/{id}/bookmark` | Required | Bookmark an article to the user's dashboard. |
-| `DELETE` | `/news/{id}/bookmark` | Required | Remove an article from bookmarks. |
+### 3.1 System Health & Diagnostics
 
----
+#### `GET /health`
+Liveness probe returning application runtime status.
+- **Access**: Public
+- **Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "app_name": "GTA 6 Player Hub API",
+    "version": "1.0.0",
+    "environment": "development",
+    "timestamp": "2026-11-21T12:00:00Z"
+  }
+}
+```
 
-### 2.3 Global Price & Deals Tracker (`/deals` & `/prices`)
-
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/deals` | Public | Retrieve real-time verified prices filtered by: `country` (IND, USA, GBR, EUR, ARE), `platform` (PS5, Xbox, PC), `edition`, and `max_price`. |
-| `GET` | `/deals/{id}/history` | Public | Retrieve historical price data points for Recharts rendering (all-time high, low, trend). |
-| `GET` | `/deals/verified-retailers` | Public | List authorized digital and physical retail stores with credentials. |
-| `GET` | `/wishlist` | Required | Retrieve current user's tracked game editions and target alert thresholds. |
-| `POST` | `/wishlist` | Required | Add edition to user's wishlist with target alert price. |
-| `DELETE` | `/wishlist/{id}` | Required | Remove item from wishlist. |
-
----
-
-### 2.4 PC Compatibility Engine (`/hardware`)
-
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/hardware/cpus` | Public | Search and list CPU models and performance benchmark tiers. |
-| `GET` | `/hardware/gpus` | Public | Search and list GPU models, VRAM capacities, and DX12 capabilities. |
-| `POST` | `/hardware/compatibility/check`| Public | Analyze custom hardware spec (CPU, GPU, RAM, Storage, Target Resolution). Returns bottleneck analysis, upgrade suggestions, and unconfirmed status disclosure. |
-| `POST` | `/hardware/reports/save` | Required | Persist compatibility report to player's dashboard. |
-| `GET` | `/hardware/reports/{id}` | Public | Retrieve saved compatibility report via shareable permalink. |
+#### `GET /health/ready`
+Readiness probe checking database and cache subsystem status.
+- **Access**: Public
+- **Response**: `200 OK`
 
 ---
 
-### 2.5 AI Gaming Problem Solver (`/support`)
+### 3.2 Player Users & Authentication
 
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/support/chat` | Public / Req | Send troubleshooting query. RAG retrieves relevant verified error docs, Gemini synthesizes safe step-by-step resolution checklist. |
-| `GET` | `/support/conversations/{id}` | Public / Req | Retrieve message history of a troubleshooting session. |
-| `GET` | `/support/kb/errors` | Public | Search verified knowledge base error encyclopedia (e.g., `ERR_GFX_D3D_INIT`). |
-| `POST` | `/support/feedback` | Public / Req | Submit helpfulness rating (thumbs up/down) with optional comments. |
+#### `GET /users/check-username`
+Checks whether a gamer username is valid and available.
+- **Access**: Public
+- **Query Parameters**:
+  - `username` (string, required): 3–30 characters, alphanumeric and underscores.
+- **Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "username": "ViceCityLegend",
+    "is_available": true,
+    "message": "Username is available."
+  }
+}
+```
 
----
+#### `GET /users/me`
+Retrieves authenticated user details, linked profile, preferences, and recent security activities.
+- **Access**: Authenticated (`Bearer <token>`)
+- **Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "email": "player@example.com",
+    "profile": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "username": "ViceCityLegend",
+      "display_name": "Vice City Legend",
+      "avatar_url": null,
+      "bio": "Counting down to GTA VI launch day.",
+      "country_code": "USA",
+      "preferred_platform": "PS5",
+      "preferred_language": "en",
+      "profile_visibility": "public",
+      "reputation_score": 10,
+      "is_verified": false,
+      "created_at": "2026-11-21T12:00:00Z",
+      "updated_at": "2026-11-21T12:00:00Z"
+    },
+    "preferences": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "preferred_country": "USA",
+      "preferred_currency": "USD",
+      "preferred_platform": "PS5",
+      "preferred_edition": "Standard Edition",
+      "preferred_language": "en",
+      "email_notifications": true,
+      "push_notifications": false,
+      "community_notifications": true,
+      "news_notifications": true,
+      "price_alert_notifications": true,
+      "event_notifications": true
+    },
+    "recent_activities": []
+  }
+}
+```
 
-### 2.6 Gaming Community (`/community`)
+#### `POST /users/sync`
+Explicitly syncs or initializes profile and preference records upon login.
+- **Access**: Authenticated
+- **Body**: `{ "username": "string", "display_name": "string" }`
+- **Response**: `200 OK`
 
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/community/feed` | Public | Paginated feed of player posts, filterable by group, trending, or followed players. |
-| `POST` | `/community/posts` | Required | Create a new community post (text, media attachments, or poll). |
-| `GET` | `/community/posts/{id}` | Public | Retrieve single post and nested comment hierarchy. |
-| `POST` | `/community/posts/{id}/like` | Required | Toggle like on a post. |
-| `POST` | `/community/posts/{id}/comments` | Required | Submit a comment or reply to an existing comment. |
-| `POST` | `/community/polls/{id}/vote` | Required | Cast a vote on a community poll. |
-| `POST` | `/community/report` | Required | Report offensive, spam, or abusive content to moderation queue. |
+#### `GET /users/me/profile`
+Retrieves player profile record.
+- **Access**: Authenticated
+- **Response**: `200 OK`
 
----
+#### `PUT /users/me/profile`
+Updates player profile fields (display name, username, bio, country, platform, visibility).
+- **Access**: Authenticated
+- **Body**:
+```json
+{
+  "display_name": "Alex Vance",
+  "username": "AlexVance6",
+  "bio": "Vice City explorer and PC hardware builder.",
+  "country_code": "USA",
+  "preferred_platform": "PC",
+  "profile_visibility": "public"
+}
+```
+- **Responses**:
+  - `200 OK`: Profile successfully updated.
+  - `409 Conflict`: Username already claimed by another user.
+  - `422 Unprocessable`: Validation failed.
 
-### 2.7 Events Calendar & Notifications (`/events` & `/notifications`)
+#### `GET /users/me/preferences`
+Retrieves user preferences.
+- **Access**: Authenticated
+- **Response**: `200 OK`
 
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/events` | Public | List upcoming GTA 6 milestones, trailer drops, and game events with countdown timestamps. |
-| `POST` | `/events/{id}/remind` | Required | Subscribe to email / in-app reminder for an event. |
-| `GET` | `/notifications` | Required | List user notifications with read/unread indicators. |
-| `PATCH` | `/notifications/{id}/read`| Required | Mark a notification as read. |
-| `PATCH` | `/notifications/read-all` | Required | Mark all notifications as read. |
+#### `PUT /users/me/preferences`
+Updates regional preferences and notification toggles.
+- **Access**: Authenticated
+- **Body**:
+```json
+{
+  "preferred_country": "IND",
+  "preferred_currency": "INR",
+  "preferred_platform": "PS5",
+  "preferred_edition": "Deluxe Edition",
+  "email_notifications": true,
+  "price_alert_notifications": true
+}
+```
+- **Response**: `200 OK`
 
----
+#### `POST /users/me/avatar`
+Uploads and updates player profile avatar.
+- **Access**: Authenticated
+- **Content-Type**: `multipart/form-data` (`file`: image binary)
+- **Validation**: MIME type in (`image/jpeg`, `image/png`, `image/webp`, `image/gif`), size <= 2MB.
+- **Responses**:
+  - `200 OK`: Avatar updated.
+  - `400 Bad Request`: Unsupported file type or size exceeds 2 MB.
 
-### 2.8 Global Search (`/search`)
+#### `DELETE /users/me/avatar`
+Removes custom avatar, resetting to default.
+- **Access**: Authenticated
+- **Response**: `200 OK`
 
-| Method | Endpoint | Auth | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/search` | Public | Multi-entity federated search. Query parameter `q` returns grouped matches across `news`, `community_posts`, `deals`, `events`, and `troubleshooting_articles`. |
+#### `GET /users/me/activity`
+Returns the 25 most recent security and profile activity entries.
+- **Access**: Authenticated
+- **Response**: `200 OK`
+
+#### `DELETE /users/me`
+Account deletion request permanently removing profile, preferences, and activity records.
+- **Access**: Authenticated
+- **Response**: `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Player account and associated data successfully removed."
+  }
+}
+```
