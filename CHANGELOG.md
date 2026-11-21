@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-11-22
+
+### Phase 4: GTA 6 News & Updates Development (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/news.py`)**:
+  - Entity models for `NewsSource`, `NewsCategory`, `NewsArticle`, and `NewsBookmark`.
+  - Alembic migration `0002_phase_4_news` establishing foreign keys, indexes, and unique constraints.
+  - PostgreSQL Row Level Security script `backend/supabase_news_schema.sql` protecting player bookmarks and public reading.
+- **Automated Collection & Ingestion Engine (`backend/app/services/news_collector.py`)**:
+  - Implemented polite external collector with User-Agent identification and exponential failure backoff.
+  - Canonical URL normalization preventing duplicate article insertion.
+  - Curated, factually verified seed catalog populated across 8 approved categories and 6 reputable publishers.
+- **Backend News REST API (`backend/app/api/news.py`)**:
+  - `GET /api/v1/news`: Paginated article listing with keyword search (`q`), category filtering, source filtering, verification filtering, and sorting (`latest`, `oldest`, `featured`).
+  - `GET /api/v1/news/featured`: Primary featured announcement retrieval.
+  - `GET /api/v1/news/categories`: Active category taxonomy with article counts.
+  - `GET /api/v1/news/sources`: Safe public directory of enabled sources.
+  - `GET /api/v1/news/stats`: Aggregate verification reporting statistics.
+  - `GET /api/v1/news/{slug}`: Article detail payload with content and related articles.
+  - `GET /api/v1/news/{slug}/related`: Related articles query.
+  - `GET /api/v1/news/bookmarks`: Authenticated player's personal saved articles.
+  - `POST /api/v1/news/{article_id}/bookmark`: Save article to bookmarks.
+  - `DELETE /api/v1/news/{article_id}/bookmark`: Remove article from bookmarks.
+  - `POST /api/v1/news/collect`: Trigger synchronization across approved sources.
+- **Frontend Modular News Suite (`frontend/src/components/news/`)**:
+  - `NewsVerificationBadge.tsx`: 4-tier badge with contextual tooltip explanations (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`).
+  - `NewsBookmarkButton.tsx`: Interactive bookmark button with auth verification and visual saved state.
+  - `NewsCard.tsx`: Consistent card layout with image previews, metadata, and bookmarking.
+  - `FeaturedNews.tsx`: Editorial hero card for primary announcements.
+  - `NewsCategoryFilter.tsx`: Scrollable category tabs with article counts.
+  - `NewsSearch.tsx`: Search input with 300ms debouncing and clear action.
+  - `NewsSort.tsx`: Sort dropdown.
+  - `NewsPagination.tsx`: Accessible page controls.
+  - `NewsSourceInfo.tsx`: Source citation box with direct source links and independent fan-site disclosure.
+  - `RelatedNews.tsx`: 3 related article recommendations on detail pages.
+  - `NewsEmptyState.tsx`: Accessible fallback when filters return 0 articles.
+  - `NewsLoadingSkeleton.tsx`: Grid and detail view loading skeletons.
+  - `NewsPageClient.tsx` & `NewsDetailPageClient.tsx`: Client orchestrators.
+- **SEO & Structured Data**:
+  - Added Schema.org `CollectionPage` JSON-LD to `/news` and `NewsArticle` JSON-LD to `/news/[slug]`.
+  - Configured dynamic OpenGraph and Twitter card metadata for every article.
+- **Home Page & Dashboard Integration**:
+  - Connected Home Page news feed in `backend/app/api/home.py` to query real database articles.
+  - Integrated "Saved Bulletins" in `/dashboard` to display bookmarked articles.
+- **Testing & Quality Assurance**:
+  - Added 15 new automated tests in `backend/tests/test_news.py` (total 34 backend tests, 100% pass rate).
+  - Validated Next.js production build (`21/21 routes generated`, 0 errors).
+
+---
+
 ## [0.4.0] - 2026-11-21
 
 ### Phase 3: Professional Home Page Development (Completed)

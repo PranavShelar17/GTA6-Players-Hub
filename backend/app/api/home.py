@@ -1,5 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.core.database import get_db
+from app.models.news import NewsArticle
 from app.schemas.envelope import ApiResponse
 from app.schemas.home import (
     HomeAggregatedResponse,
@@ -212,12 +218,47 @@ CURATED_COMMUNITY: List[HomeCommunityHighlight] = [
 async def get_homepage_feed(
     country_code: Optional[str] = Query(None, description="Country filter for deals"),
     currency: Optional[str] = Query(None, description="Currency filter for deals"),
-    platform: Optional[str] = Query(None, description="Platform filter for deals")
+    platform: Optional[str] = Query(None, description="Platform filter for deals"),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Retrieves the complete aggregated homepage feed: news, deals, events, and community highlights.
     Adapts deals to player country/currency preferences if provided.
+    Queries database for real Phase 4 published news articles with fallback to curated items.
     """
+    # Fetch real articles from database
+    news_items = []
+    try:
+        stmt = (
+            select(NewsArticle)
+            .options(selectinload(NewsArticle.category), selectinload(NewsArticle.source))
+            .where(NewsArticle.publication_status == "PUBLISHED")
+            .order_by(NewsArticle.is_featured.desc(), NewsArticle.original_published_at.desc())
+            .limit(4)
+        )
+        res = await db.execute(stmt)
+        articles = res.scalars().all()
+        for art in articles:
+            news_items.append(
+                HomeNewsItem(
+                    id=str(art.id),
+                    title=art.title,
+                    slug=art.slug,
+                    summary=art.summary,
+                    source_name=art.source.name if art.source else "Independent Report",
+                    source_url=art.source.website_url if art.source else art.original_article_url,
+                    published_at=art.original_published_at.isoformat(),
+                    verification_status=art.verification_status,
+                    category=art.category.name if art.category else "General Update",
+                    thumbnail_url=art.image_url,
+                )
+            )
+    except Exception:
+        news_items = []
+
+    if not news_items:
+        news_items = CURATED_NEWS
+
     filtered_deals = CURATED_DEALS
 
     if country_code:
@@ -238,7 +279,7 @@ async def get_homepage_feed(
     return ApiResponse(
         success=True,
         data=HomeAggregatedResponse(
-            news=CURATED_NEWS,
+            news=news_items,
             deals=filtered_deals[:4],
             events=CURATED_EVENTS,
             community=CURATED_COMMUNITY,
@@ -248,9 +289,41 @@ async def get_homepage_feed(
 
 
 @router.get("/news", response_model=ApiResponse[List[HomeNewsItem]])
-async def get_home_news():
-    """Retrieves curated latest news and official bulletins for the homepage."""
-    return ApiResponse(success=True, data=CURATED_NEWS)
+async def get_home_news(db: AsyncSession = Depends(get_db)):
+    """Retrieves curated latest news and official bulletins for the homepage from database."""
+    news_items = []
+    try:
+        stmt = (
+            select(NewsArticle)
+            .options(selectinload(NewsArticle.category), selectinload(NewsArticle.source))
+            .where(NewsArticle.publication_status == "PUBLISHED")
+            .order_by(NewsArticle.is_featured.desc(), NewsArticle.original_published_at.desc())
+            .limit(4)
+        )
+        res = await db.execute(stmt)
+        articles = res.scalars().all()
+        for art in articles:
+            news_items.append(
+                HomeNewsItem(
+                    id=str(art.id),
+                    title=art.title,
+                    slug=art.slug,
+                    summary=art.summary,
+                    source_name=art.source.name if art.source else "Independent Report",
+                    source_url=art.source.website_url if art.source else art.original_article_url,
+                    published_at=art.original_published_at.isoformat(),
+                    verification_status=art.verification_status,
+                    category=art.category.name if art.category else "General Update",
+                    thumbnail_url=art.image_url,
+                )
+            )
+    except Exception:
+        news_items = []
+
+    if not news_items:
+        news_items = CURATED_NEWS
+
+    return ApiResponse(success=True, data=news_items)
 
 
 @router.get("/deals", response_model=ApiResponse[List[HomeDealItem]])

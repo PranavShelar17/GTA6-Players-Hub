@@ -327,3 +327,46 @@ Account deletion request permanently removing profile, preferences, and activity
   }
 }
 ```
+
+---
+
+### 3.4 News & Editorial Bulletins (`/news`)
+
+Detailed specification documented in [docs/NEWS_API_DOCUMENTATION.md](file:///c:/Users/Pranav/Downloads/GTA6-Players-Hub-main/docs/NEWS_API_DOCUMENTATION.md).
+
+#### `GET /news`
+Paginated published news listing with keyword search (`q`), category filter (`category`), source filter (`source_id`), verification status filter (`verification_status`), and sorting (`latest`, `oldest`, `featured`).
+
+#### `GET /news/featured`
+Returns the latest featured or official announcement.
+
+#### `GET /news/categories`
+Returns active categories with real-time published article counts.
+
+#### `GET /news/sources`
+Returns public list of enabled news sources and trust levels.
+
+#### `GET /news/stats`
+Returns total published articles and breakdown across 4-tier verification levels.
+
+#### `GET /news/{slug}`
+Returns article detail payload including formatted content and related coverage.
+
+#### `GET /news/{slug}/related`
+Returns up to N related articles from the same category.
+
+#### `GET /news/bookmarks`
+Returns articles saved to the authenticated player's personal bookmarks.
+- **Access**: Authenticated
+
+#### `POST /news/{article_id}/bookmark`
+Saves an article to the authenticated player's personal bookmarks.
+- **Access**: Authenticated
+
+#### `DELETE /news/{article_id}/bookmark`
+Removes an article from the authenticated player's personal bookmarks.
+- **Access**: Authenticated
+
+#### `POST /news/collect`
+Triggers synchronization and collection across approved sources with canonical URL deduplication.
+- **Access**: System / Internal

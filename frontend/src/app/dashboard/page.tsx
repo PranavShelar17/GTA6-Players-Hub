@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Cpu, 
@@ -16,9 +16,25 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { fetchPlayerBookmarks, NewsBookmarkItem } from "@/lib/newsApi";
 
 export default function DashboardPage() {
-  const { user, profile, preferences, activities } = useAuth();
+  const { user, profile, preferences, activities, session } = useAuth();
+  const [bookmarks, setBookmarks] = useState<NewsBookmarkItem[]>([]);
+
+  useEffect(() => {
+    async function loadBookmarks() {
+      if (session?.access_token) {
+        try {
+          const data = await fetchPlayerBookmarks(session.access_token);
+          setBookmarks(data);
+        } catch {
+          // Silent fallback
+        }
+      }
+    }
+    loadBookmarks();
+  }, [session?.access_token]);
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Player";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -187,7 +203,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between mb-1">
               <Bookmark className="w-5 h-5 text-amber-400" />
-              <Badge variant="default">0 Bookmarks</Badge>
+              <Badge variant="default">{bookmarks.length} Saved</Badge>
             </div>
             <CardTitle className="text-base">Saved Bulletins</CardTitle>
             <CardDescription className="text-xs">
@@ -195,9 +211,29 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
-              No saved articles yet. Bookmark official Rockstar Newswire announcements to read them anytime.
-            </div>
+            {bookmarks.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {bookmarks.slice(0, 3).map((bm) => (
+                  <Link
+                    key={bm.bookmark_id}
+                    href={`/news/${bm.article.slug}`}
+                    className="block p-2.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-colors group"
+                  >
+                    <p className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                      {bm.article.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between">
+                      <span>{bm.article.source_name}</span>
+                      <span className="text-orange-400">Read →</span>
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No saved articles yet. Bookmark official Rockstar Newswire announcements to read them anytime.
+              </div>
+            )}
             <Link href="/news" className="block">
               <Button variant="outline" size="sm" className="w-full gap-1.5">
                 Explore News Feed

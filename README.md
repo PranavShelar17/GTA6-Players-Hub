@@ -41,18 +41,21 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 
 ---
 
-## 4. Current Status: Phase 3 Completed (Awaiting Phase 4 Approval)
+## 4. Current Status: Phase 4 Completed (Awaiting Phase 5 Approval)
 
 - **Phase 0 (Planning & Master Architecture)**: `COMPLETED & APPROVED`
 - **Phase 1 (Project Foundation & Website Design)**: `COMPLETED & APPROVED`
 - **Phase 2 (Database Architecture & Complete Player Authentication)**: `COMPLETED & APPROVED`
-- **Phase 3 (Professional Home Page Development)**: `COMPLETED`
-  - Modular homepage architecture with 11 specialized components under `frontend/src/components/home/`.
-  - Dynamic FastAPI `/api/v1/home` feed delivering curated news with 4-tier verification labels, regional pre-order deals, upcoming milestones, and community highlights.
-  - Live milestone countdown timer, interactive global search palette (`Ctrl+K`), and authenticated player dashboard banner.
-  - Speculative PC compatibility benchmark showcase and AI technical troubleshooting encyclopedia teasers.
-  - Schema.org JSON-LD structured data and responsive Vice City dark aesthetic design.
-  - 100% test pass rate: 19/19 backend pytest suite + 21/21 Next.js production build static/dynamic routes.
+- **Phase 3 (Professional Home Page Development)**: `COMPLETED & APPROVED`
+- **Phase 4 (GTA 6 News & Updates Development)**: `COMPLETED`
+  - 4-Tier Truth & Verification System (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`).
+  - Database entities (`news_sources`, `news_categories`, `news_articles`, `news_bookmarks`) with Alembic migrations and Supabase RLS policies.
+  - Automated ingestion service with canonical URL deduplication and verified initial news catalog.
+  - Full REST API under `/api/v1/news` with pagination, category/source filters, search, sorting, and player bookmarks.
+  - Complete Next.js News Hub (`/news`) and dynamic article detail pages (`/news/[slug]`) with Web Share API and Schema.org `NewsArticle` JSON-LD.
+  - Integrated player bookmarks across `/news`, `/news/[slug]`, and `/dashboard`.
+  - Seamless Home Page integration querying real Phase 4 database articles.
+  - 100% test pass rate: 34/34 backend pytest suite + 21/21 Next.js production build static/dynamic routes.
 
 ---
 

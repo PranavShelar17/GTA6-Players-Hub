@@ -96,3 +96,18 @@ async def get_current_user(
             detail="Invalid authentication token signature.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer)
+) -> Optional[CurrentUser]:
+    """
+    Optional token validator. Returns CurrentUser if valid, otherwise None.
+    Does not raise 401 for anonymous viewers.
+    """
+    if not credentials:
+        return None
+    try:
+        return await get_current_user(credentials)
+    except HTTPException:
+        return None

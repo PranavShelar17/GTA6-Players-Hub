@@ -58,8 +58,18 @@
 
 ### Phase 4 – News and Updates (Page 3)
 - **Objective**: Implement news data ingestion pipeline with source verification; build 4-tier labeling engine (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`); construct news listing, search, category filters, single article detail views, and bookmarking.
-- **Status**: `NOT STARTED`
-- **Dependencies**: Phase 2 & 3.
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 5)`
+- **Key Deliverables**:
+  - 4-Tier Truth & Verification Standard (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`).
+  - Database schema: `news_sources`, `news_categories`, `news_articles`, `news_bookmarks` via Alembic migration `0002_phase_4_news` and Supabase RLS.
+  - Automated collection foundation with canonical URL deduplication and verified seed articles.
+  - FastAPI endpoints under `/api/v1/news` (listing, search, category/source/status filters, stats, featured, slug detail, related, and player bookmark mutations).
+  - Next.js News Hub (`/news`) with search, filter pills, sorting, responsive cards grid, pagination, and stats header.
+  - Dynamic Article Detail view (`/news/[slug]`) with full content, source attribution box, share action, and related news.
+  - Player bookmarks integrated with Phase 2 authentication and Dashboard saved bulletins widget.
+  - Home Page news section wired to real Phase 4 database records.
+  - 34/34 passing backend tests and 21/21 passing Next.js production routes.
+  - Phase 4 Completion Report and docs.
 
 ---
 
