@@ -13,27 +13,27 @@
 
 ### Phase 0 – Project Planning and Architecture
 - **Objective**: Conduct comprehensive environment audit, establish master architecture, define relational schemas, detail API specifications, configure directory layouts, and establish engineering standards.
-- **Status**: `COMPLETED (Awaiting Approval)`
+- **Status**: `COMPLETED (Approved & Committed to main)`
 - **Key Deliverables**: All 12 master documentation files, `.env.example`, `.gitignore`, and Phase 0 Completion Report.
 
 ---
 
 ### Phase 1 – Project Foundation and Design System
-- **Objective**: Scaffold Next.js 15 frontend and FastAPI backend foundation; establish shared Tailwind CSS design system with GTA 6 / Vice City visual theme; construct universal responsive navbar and footer; implement mock API connections and health checks.
-- **Status**: `NOT STARTED`
-- **Dependencies**: Approval of Phase 0.
+- **Objective**: Scaffold Next.js 15 frontend and FastAPI backend foundation; establish shared Tailwind CSS design system with GTA 6 / Vice City visual theme; construct universal responsive navbar and footer; implement mock API connections and health checks; build all 6 main page layouts and supporting route shells.
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 2)`
+- **Key Deliverables**: Next.js 15 App, FastAPI REST API, 6 core page layouts, 8 supporting route shells, reusable UI components, passing pytest and Next.js production build, and Phase 1 Completion Report.
 
 ---
 
 ### Phase 2 – Database and Player Authentication
-- **Objective**: Deploy local Docker containers for PostgreSQL (with `pgvector`) and Redis; configure SQLAlchemy async models and Alembic migrations; integrate Supabase Auth / JWT authentication; implement player registration, login, email verification, password reset, and profile management.
+- **Objective**: Deploy local Docker containers for PostgreSQL (with `pgvector` on port 5435) and Redis (port 6381); configure SQLAlchemy async models and Alembic migrations; integrate Supabase Auth / JWT authentication; implement player registration, login, email verification, password reset, and profile management.
 - **Status**: `NOT STARTED`
-- **Dependencies**: Phase 1 foundation.
+- **Dependencies**: Phase 1 foundation sign-off.
 
 ---
 
 ### Phase 3 – Home Page (Page 1)
-- **Objective**: Construct high-impact GTA 6 hero section, live countdown clock, news ticker, featured deals module, upcoming events preview, community highlights, persistent quick links, and authenticated personalized dashboard widgets.
+- **Objective**: Connect dynamic backend feeds to the Home page hero section, live countdown clock, news ticker, featured deals module, upcoming events preview, community highlights, persistent quick links, and authenticated personalized dashboard widgets.
 - **Status**: `NOT STARTED`
 - **Dependencies**: Phase 2 authentication and data models.
 

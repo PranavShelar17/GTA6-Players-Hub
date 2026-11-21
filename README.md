@@ -16,24 +16,23 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 
 | Page | Route | Description |
 | :--- | :--- | :--- |
-| **1. Home** | `/` | Immersive GTA 6 hero, real-time news ticker, featured deals, community pulse, upcoming countdowns, and unified global search. |
+| **1. Home** | `/` | Immersive GTA 6 hero, real-time news ticker, featured deals, community pulse, upcoming countdowns, and quick access hubs. |
 | **2. Gaming Community** | `/community` | Player discussions, media sharing, verified polls, interest groups, follower networks, bookmarks, and strict moderation tools. |
 | **3. News & Updates** | `/news` | Official Rockstar announcements, verified press reports, source attribution, categorization, and historical records. |
-| **4. PC Compatibility** | `/pc-checker` | Hardware bottleneck detection, specification analysis, upgrade planning, and transparent unconfirmed requirement notices. |
-| **5. Problem Solver** | `/support` | RAG-assisted AI diagnostic assistant, structured error database, curated step-by-step troubleshooting, and safe system advice. |
-| **6. Price & Deals** | `/deals` | Multi-country price comparison (INR, USD, EUR, GBP, AED), edition breakdown, price drop alerts, and retailer verification. |
+| **4. PC Compatibility** | `/pc-compatibility` | Hardware bottleneck detection, specification analysis, upgrade planning, and transparent unconfirmed requirement notices. |
+| **5. Problem Solver** | `/problem-solver` | RAG-assisted AI diagnostic assistant, structured error database, curated step-by-step troubleshooting, and safe system advice. |
+| **6. Price & Deals** | `/price-deals` | Multi-country price comparison (INR, USD, EUR, GBP, AED), edition breakdown, price drop alerts, and retailer verification. |
 
-### Supporting Global Features
+### Supporting Global Routes
 - **Player Account & Dashboard (`/dashboard`)**: Profile customisation, saved hardware reports, bookmarks, wishlist, and notification control center.
-- **Global Search (`/search` or `Cmd+K`)**: Multi-entity instant search indexing news, community posts, deals, events, and troubleshooting articles.
-- **Events Calendar**: Countdown timers, timezone-normalized release dates, trailer drops, and game milestones.
-- **Notification Center**: Real-time WebSocket and in-app alerts for price drops, replies, and breaking announcements.
+- **Authentication**: Sign In (`/login`), Registration (`/register`), and Password Recovery (`/forgot-password`).
+- **User Hubs**: Profile (`/profile`), Settings (`/settings`), Notifications (`/notifications`), and Wishlist (`/wishlist`).
 
 ---
 
 ## 3. Technology Stack Summary
 
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query v5, Recharts, Lucide Icons.
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide Icons, TanStack Query.
 - **Backend**: Python 3.14 / 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 (Async), Alembic.
 - **Database & Auth**: PostgreSQL 16+ with `pgvector`, Supabase Auth & Storage, Row-Level Security (RLS).
 - **Asynchronous Processing**: Redis 7, Celery & Celery Beat background workers.
@@ -42,43 +41,45 @@ Designed with a micro-modular monolith architecture, the project adheres strictl
 
 ---
 
-## 4. Current Status: Phase 0 (Planning & Architecture)
+## 4. Current Status: Phase 1 Completed (Awaiting Phase 2 Approval)
 
-- **Phase State**: `COMPLETED (Awaiting User Approval to start Phase 1)`
-- **Project Structure**: Clean modular scaffold created.
-- **Audit**: Completed on local development environment (Node v24.21.0, Python 3.14.7, Docker Desktop active).
-- **Documentation**: Comprehensive master documentation authored and validated.
+- **Phase 0 (Planning & Master Architecture)**: `COMPLETED & APPROVED`
+- **Phase 1 (Project Foundation & Website Design)**: `COMPLETED (Awaiting Approval)`
+  - Next.js 15 App Router frontend fully configured with Vice City / dark gaming theme.
+  - FastAPI backend configured with CORS, structured logging, and health/readiness probes.
+  - All 6 core page layouts and 8 supporting route shells fully rendered and typechecked.
+  - Reusable UI component library created (Buttons, Cards, Badges, Inputs, Skeletons, Empty & Error states).
+  - Frontend-to-backend live connection hook and status pill integrated.
+  - 100% test pass rate (pytest backend suite + Next.js production build with 18 static pages).
 
 ---
 
 ## 5. Quick Start (Development Setup)
 
-Refer to [docs/ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for full instructions.
+Refer to [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for detailed instructions.
 
 ### Prerequisites
-- Node.js >= 20.x (Current: v24.21.0)
-- Python >= 3.11 (Current: v3.14.7)
-- Docker Desktop (Running PostgreSQL 16 and Redis 7)
+- Node.js >= 20.x (Current: `v24.21.0`)
+- Python >= 3.11 (Current: `3.14.7`)
 - Git
 
-```bash
-# Clone and enter the repository
-cd project0.1
+### One-Click Development Startup Scripts (PowerShell)
 
-# Configure environment variables
-cp .env.example .env
+```powershell
+# 1. Run all backend and frontend quality checks
+.\scripts\test-all.ps1
 
-# Backend Virtual Environment
-cd backend
-python -m venv venv
-venv\Scripts\activate   # Windows
-pip install -r requirements.txt
+# 2. Start the FastAPI backend server (Port 8000)
+.\scripts\start-backend.ps1
 
-# Frontend Setup
-cd ../frontend
-npm install
-npm run dev
+# 3. In a separate terminal, start the Next.js frontend (Port 3000)
+.\scripts\start-frontend.ps1
 ```
+
+Once started:
+- Frontend: `http://localhost:3000`
+- Backend API Docs (Swagger): `http://localhost:8000/api/v1/docs`
+- Backend Health Probe: `http://localhost:8000/api/v1/health`
 
 ---
 
@@ -96,6 +97,7 @@ npm run dev
 - [DEPLOYMENT.md](DEPLOYMENT.md) – Infrastructure topology, Vercel/Railway configurations, and monitoring.
 - [CHANGELOG.md](CHANGELOG.md) – Project versioning and chronological release milestones.
 - [Phase 0 Report](docs/reports/PHASE_0_COMPLETION_REPORT.md) – Initial audit findings and sign-off report.
+- [Phase 1 Report](docs/reports/PHASE_1_COMPLETION_REPORT.md) – Foundation & design system completion report.
 
 ---
 
