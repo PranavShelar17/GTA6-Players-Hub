@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.models.news import NewsArticle
+from app.models.price import PriceObservation, PriceProduct, PriceRegion, PriceStore
 from app.schemas.envelope import ApiResponse
 from app.schemas.home import (
     HomeAggregatedResponse,
@@ -259,28 +260,72 @@ async def get_homepage_feed(
     if not news_items:
         news_items = CURATED_NEWS
 
-    filtered_deals = CURATED_DEALS
+    # Query verified deals from Phase 5 database
+    deals_items = []
+    try:
+        deal_stmt = (
+            select(PriceObservation)
+            .options(
+                selectinload(PriceObservation.product),
+                selectinload(PriceObservation.region),
+                selectinload(PriceObservation.store)
+            )
+            .where(
+                PriceObservation.verification_status.in_(["VERIFIED", "STALE"]),
+                PriceObservation.current_price > 0
+            )
+        )
+        if country_code:
+            deal_stmt = deal_stmt.join(PriceRegion).where(PriceRegion.country_code == country_code.upper())
+        if currency:
+            deal_stmt = deal_stmt.where(PriceObservation.currency_code == currency.upper())
+        if platform:
+            deal_stmt = deal_stmt.join(PriceProduct).where(PriceProduct.platform == platform.upper())
 
-    if country_code:
-        country_matched = [d for d in filtered_deals if d.country_code.upper() == country_code.upper()]
-        if country_matched:
-            filtered_deals = country_matched
+        deal_stmt = deal_stmt.order_by(desc(PriceObservation.discount_percentage), PriceObservation.current_price.asc()).limit(6)
+        deal_res = await db.execute(deal_stmt)
+        obs_deals = deal_res.scalars().all()
+        for d in obs_deals:
+            deals_items.append(
+                HomeDealItem(
+                    id=str(d.id),
+                    edition_name=d.product.name,
+                    platform=d.product.platform,
+                    country_code=d.region.country_code,
+                    current_price=float(d.current_price),
+                    currency=d.currency_code,
+                    original_price=float(d.original_price) if d.original_price else None,
+                    discount_percentage=int(d.discount_percentage),
+                    retailer_name=d.store.store_name,
+                    product_url=d.product_url,
+                    last_checked_at=d.observed_at.isoformat(),
+                    is_preorder=True
+                )
+            )
+    except Exception:
+        deals_items = []
 
-    if currency:
-        currency_matched = [d for d in filtered_deals if d.currency.upper() == currency.upper()]
-        if currency_matched:
-            filtered_deals = currency_matched
-
-    if platform:
-        plat_matched = [d for d in filtered_deals if d.platform.upper() == platform.upper()]
-        if plat_matched:
-            filtered_deals = plat_matched
+    if not deals_items:
+        filtered_deals = CURATED_DEALS
+        if country_code:
+            country_matched = [d for d in filtered_deals if d.country_code.upper() == country_code.upper()]
+            if country_matched:
+                filtered_deals = country_matched
+        if currency:
+            currency_matched = [d for d in filtered_deals if d.currency.upper() == currency.upper()]
+            if currency_matched:
+                filtered_deals = currency_matched
+        if platform:
+            plat_matched = [d for d in filtered_deals if d.platform.upper() == platform.upper()]
+            if plat_matched:
+                filtered_deals = plat_matched
+        deals_items = filtered_deals
 
     return ApiResponse(
         success=True,
         data=HomeAggregatedResponse(
             news=news_items,
-            deals=filtered_deals[:4],
+            deals=deals_items[:4],
             events=CURATED_EVENTS,
             community=CURATED_COMMUNITY,
             disclaimer="All news is classified under 4-tier truth verification. Official PC system requirements and global store pricing remain unannounced until published by Rockstar Games."
@@ -330,23 +375,71 @@ async def get_home_news(db: AsyncSession = Depends(get_db)):
 async def get_home_deals(
     country_code: Optional[str] = Query(None),
     currency: Optional[str] = Query(None),
-    platform: Optional[str] = Query(None)
+    platform: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
 ):
     """Retrieves featured store deals and pre-orders, localized by region/currency."""
-    deals = CURATED_DEALS
-    if country_code:
-        matched = [d for d in deals if d.country_code.upper() == country_code.upper()]
-        if matched:
-            deals = matched
-    if currency:
-        matched = [d for d in deals if d.currency.upper() == currency.upper()]
-        if matched:
-            deals = matched
-    if platform:
-        matched = [d for d in deals if d.platform.upper() == platform.upper()]
-        if matched:
-            deals = matched
-    return ApiResponse(success=True, data=deals)
+    deals_items = []
+    try:
+        deal_stmt = (
+            select(PriceObservation)
+            .options(
+                selectinload(PriceObservation.product),
+                selectinload(PriceObservation.region),
+                selectinload(PriceObservation.store)
+            )
+            .where(
+                PriceObservation.verification_status.in_(["VERIFIED", "STALE"]),
+                PriceObservation.current_price > 0
+            )
+        )
+        if country_code:
+            deal_stmt = deal_stmt.join(PriceRegion).where(PriceRegion.country_code == country_code.upper())
+        if currency:
+            deal_stmt = deal_stmt.where(PriceObservation.currency_code == currency.upper())
+        if platform:
+            deal_stmt = deal_stmt.join(PriceProduct).where(PriceProduct.platform == platform.upper())
+
+        deal_stmt = deal_stmt.order_by(desc(PriceObservation.discount_percentage), PriceObservation.current_price.asc()).limit(6)
+        deal_res = await db.execute(deal_stmt)
+        obs_deals = deal_res.scalars().all()
+        for d in obs_deals:
+            deals_items.append(
+                HomeDealItem(
+                    id=str(d.id),
+                    edition_name=d.product.name,
+                    platform=d.product.platform,
+                    country_code=d.region.country_code,
+                    current_price=float(d.current_price),
+                    currency=d.currency_code,
+                    original_price=float(d.original_price) if d.original_price else None,
+                    discount_percentage=int(d.discount_percentage),
+                    retailer_name=d.store.store_name,
+                    product_url=d.product_url,
+                    last_checked_at=d.observed_at.isoformat(),
+                    is_preorder=True
+                )
+            )
+    except Exception:
+        deals_items = []
+
+    if not deals_items:
+        deals = CURATED_DEALS
+        if country_code:
+            matched = [d for d in deals if d.country_code.upper() == country_code.upper()]
+            if matched:
+                deals = matched
+        if currency:
+            matched = [d for d in deals if d.currency.upper() == currency.upper()]
+            if matched:
+                deals = matched
+        if platform:
+            matched = [d for d in deals if d.platform.upper() == platform.upper()]
+            if matched:
+                deals = matched
+        deals_items = deals
+
+    return ApiResponse(success=True, data=deals_items)
 
 
 @router.get("/events", response_model=ApiResponse[List[HomeEventItem]])

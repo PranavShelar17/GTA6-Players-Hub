@@ -17,23 +17,29 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { fetchPlayerBookmarks, NewsBookmarkItem } from "@/lib/newsApi";
+import { fetchPlayerWishlist, WishlistItem } from "@/lib/priceApi";
 
 export default function DashboardPage() {
   const { user, profile, preferences, activities, session } = useAuth();
   const [bookmarks, setBookmarks] = useState<NewsBookmarkItem[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
 
   useEffect(() => {
-    async function loadBookmarks() {
+    async function loadUserData() {
       if (session?.access_token) {
         try {
-          const data = await fetchPlayerBookmarks(session.access_token);
-          setBookmarks(data);
+          const [bms, wl] = await Promise.all([
+            fetchPlayerBookmarks(session.access_token),
+            fetchPlayerWishlist(session.access_token),
+          ]);
+          setBookmarks(bms);
+          setWishlist(wl);
         } catch {
           // Silent fallback
         }
       }
     }
-    loadBookmarks();
+    loadUserData();
   }, [session?.access_token]);
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Player";
@@ -178,7 +184,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between mb-1">
               <Heart className="w-5 h-5 text-rose-400" />
-              <Badge variant="default">0 Tracked</Badge>
+              <Badge variant="default">{wishlist.length} Tracked</Badge>
             </div>
             <CardTitle className="text-base">Price Alert Watchlist</CardTitle>
             <CardDescription className="text-xs">
@@ -186,9 +192,31 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
-              No editions currently tracked on your wishlist. Browse authorized global retailers to set price-drop triggers.
-            </div>
+            {wishlist.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {wishlist.slice(0, 3).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/price-deals/${item.slug}`}
+                    className="block p-2.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-colors group"
+                  >
+                    <p className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                      {item.product_name}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between font-mono">
+                      <span>{item.platform}</span>
+                      <span className="text-orange-400 font-bold">
+                        {item.currency_symbol || ""}{item.lowest_verified_price || "TBA"}
+                      </span>
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No editions currently tracked on your wishlist. Browse authorized global retailers to set price-drop triggers.
+              </div>
+            )}
             <Link href="/price-deals" className="block">
               <Button variant="outline" size="sm" className="w-full gap-1.5">
                 Explore Deals Tracker

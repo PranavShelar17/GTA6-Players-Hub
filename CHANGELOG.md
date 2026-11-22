@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-11-22
+
+### Phase 5: GTA 6 Price & Deals Tracker Development (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/price.py`)**:
+  - Entity models for `PriceProduct`, `PriceRegion`, `PriceStore`, `PriceObservation`, `PriceAlert`, `PriceAlertEvent`, `PriceWishlist`, and `PriceSource`.
+  - Fixed-point monetary precision using `Numeric(10, 2)` for prices and `Numeric(5, 2)` for discounts.
+  - Alembic migration `0003_phase_5_price` establishing foreign keys, composite indexes, and unique constraints.
+  - Supabase Row-Level Security policy script `backend/supabase_prices_schema.sql` providing strict isolation for player wishlists and price alerts.
+- **Price Ingestion & Validation Pipeline (`backend/app/services/price_service.py`, `price_collector.py`)**:
+  - Rigorous mathematical discount validation: $\text{Discount} = \frac{\text{Original} - \text{Current}}{\text{Original}} \times 100$.
+  - 72-hour freshness window with automatic `STALE` price detection.
+  - Automated target price alert evaluation and event recording pipeline.
+  - Verified baseline seed observations across PlayStation 5, Xbox Series X/S, and PC.
+  - Transparent Level 4 status protection for unannounced PC pricing.
+- **Backend Price REST API (`backend/app/api/prices.py`)**:
+  - Reference endpoints for supported regions (`/regions`) and stores (`/stores`).
+  - Catalog listing (`/products`) with lowest verified pricing per region.
+  - Comprehensive store comparison (`/compare`) with best price indicator and tax disclosures.
+  - Verified discount deals feed (`/deals`).
+  - Chronological price observation tracking (`/products/{slug}/history`).
+  - Authenticated player wishlist management (`/wishlist`, `/wishlist/{product_id}`).
+  - Authenticated player target price alert lifecycle (`/alerts`, `/alerts/{alert_id}`).
+  - System tracking statistics (`/stats`).
+- **Home Page Integration (`backend/app/api/home.py`)**:
+  - Connected `/api/v1/home/deals` to real `PriceObservation` database records with graceful fallback.
+- **Modular Frontend Architecture (`frontend/src/components/prices/`)**:
+  - Main tracker page at `/price-deals` with tabs for Catalog, Deals, Alerts, and Wishlist.
+  - Dynamic product detail and history page at `/price-deals/[slug]`.
+  - Interactive SVG Price History Chart with hover tooltip markers.
+  - Comparison table with responsive mobile card fallback.
+  - Wishlist toggle and target price alert modal dialog.
+  - Player Dashboard (`/dashboard`) Price Alert Watchlist card integration.
+- **Testing & Quality Assurance**:
+  - 12 comprehensive unit and integration tests in `backend/tests/test_prices.py`.
+  - 46/46 passing tests across the entire backend test suite.
+  - 21/21 statically and dynamically compiled Next.js production routes.
+
+---
+
 ## [0.5.0] - 2026-11-22
 
 ### Phase 4: GTA 6 News & Updates Development (Completed)

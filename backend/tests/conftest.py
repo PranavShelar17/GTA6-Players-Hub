@@ -5,6 +5,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
+import app.models  # Ensure all model tables are registered in Base.metadata
 from app.main import app
 
 # In-memory SQLite async engine for test isolation

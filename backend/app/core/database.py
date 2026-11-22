@@ -54,6 +54,14 @@ async def init_db():
                     logger.info(f"Seeded {count} initial verified news articles.")
             except Exception as seed_err:
                 logger.warning(f"Seed news warning: {seed_err}")
+
+            try:
+                from app.services.price_collector import seed_initial_price_data
+                price_count = await seed_initial_price_data(session)
+                if price_count > 0:
+                    logger.info(f"Seeded {price_count} initial verified price observations.")
+            except Exception as price_seed_err:
+                logger.warning(f"Seed price warning: {price_seed_err}")
     except Exception as e:
         logger.warning(f"Database schema initialization warning (e.g. offline PG): {e}")
 
