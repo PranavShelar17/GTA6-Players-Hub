@@ -92,6 +92,14 @@ async def init_db():
                     logger.info(f"Seeded {pc_req_count} baseline GTA 6 PC requirements entries.")
             except Exception as pc_seed_err:
                 logger.warning(f"Seed PC requirements warning: {pc_seed_err}")
+
+            try:
+                from app.services.ai_knowledge_service import AIKnowledgeService
+                doc_count = await AIKnowledgeService.seed_initial_knowledge_base(session)
+                if doc_count > 0:
+                    logger.info(f"Seeded {doc_count} verified technical troubleshooting knowledge documents.")
+            except Exception as ai_seed_err:
+                logger.warning(f"Seed AI knowledge base warning: {ai_seed_err}")
     except Exception as e:
         logger.warning(f"Database schema initialization warning (e.g. offline PG): {e}")
 

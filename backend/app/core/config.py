@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: str = "your-supabase-jwt-secret-min-32-chars-for-dev"
     SUPABASE_STORAGE_BUCKET: str = "avatars"
 
+    # AI Gaming Problem Solver Configuration (Phase 9)
+    # Provider-independent configuration: supports "mock", "openai", "gemini", "custom"
+    AI_PROVIDER: str = "mock"
+    AI_API_KEY: Optional[str] = None
+    AI_MODEL: str = "gpt-4o-mini"
+    AI_API_BASE_URL: Optional[str] = None
+    AI_MAX_TOKENS: int = 1500
+    AI_TEMPERATURE: float = 0.5
+    AI_SYSTEM_NAME: str = "Vice City AI Technical Assistant"
+
     # Fallback to in-memory SQLite if PostgreSQL is unavailable in local dev/tests
     SQLITE_FALLBACK: bool = True
 

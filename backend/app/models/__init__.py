@@ -43,6 +43,13 @@ from app.models.pc_compatibility import (
     GameSystemRequirement,
     PCCompatibilityCheck,
 )
+from app.models.problem_solver import (
+    AIConversation,
+    AIMessage,
+    AIResponseFeedback,
+    AIKnowledgeSource,
+    AIKnowledgeDocument,
+)
 
 __all__ = [
     "PlayerProfile",
@@ -85,4 +92,9 @@ __all__ = [
     "PCHardwareProfile",
     "GameSystemRequirement",
     "PCCompatibilityCheck",
+    "AIConversation",
+    "AIMessage",
+    "AIResponseFeedback",
+    "AIKnowledgeSource",
+    "AIKnowledgeDocument",
 ]

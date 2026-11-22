@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.0] - 2026-11-22
+
+### Phase 9: AI Gaming Problem Solver Development (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/problem_solver.py`)**:
+  - Entity models for `AIConversation`, `AIMessage`, `AIResponseFeedback`, `AIKnowledgeSource`, and `AIKnowledgeDocument`.
+  - Alembic migration `0007_phase_9_ai_problem_solver.py` establishing foreign keys, composite indexes, and cascade deletions.
+  - Supabase PostgreSQL schema `backend/supabase_problem_solver_schema.sql` with Row Level Security (RLS) policies for user data ownership and public read on knowledge bases.
+- **Provider-Independent AI Architecture (`backend/app/services/ai_provider.py`, `ai_service.py`, `ai_knowledge_service.py`)**:
+  - Abstract AI Provider factory supporting Google Gemini (`gemini`), OpenAI (`openai`), and deterministic mock diagnostic engine (`mock`).
+  - Mandatory 5-part diagnostic standard: Problem Understanding, Possible Causes, Recommended Steps (safe and reversible), Expected Result, and Next Step.
+  - Strict anti-fabrication guardrails forbidding invented GTA 6 error codes, release dates, or unannounced system requirements.
+  - Integration with Phase 8 saved PC Hardware Profiles for contextualized hardware troubleshooting.
+  - RAG knowledge base seeding with 5 verified technical playbooks (Rockstar Games Support, DirectX 12 launch crashes, DDU clean driver uninstallation, Controller Steam Input, TCP/IP network reset).
+  - Screenshot upload pipeline supporting PNG, JPG, JPEG, WebP attachments up to 10MB under `/uploads/ai_attachments/`.
+- **Backend REST API Endpoints (`backend/app/api/problem_solver.py`)**:
+  - Operational status (`GET /api/v1/ai/status`).
+  - Suggested categories (`GET /api/v1/ai/categories`).
+  - Conversation sessions (`POST/GET /api/v1/ai/conversations`, `GET/PATCH/DELETE /api/v1/ai/conversations/{id}`).
+  - Message exchange (`POST /api/v1/ai/conversations/{id}/messages`).
+  - Error screenshot uploads (`POST /api/v1/ai/attachments`).
+  - Response feedback & reports (`POST /api/v1/ai/feedback`).
+- **Frontend Modular Architecture (`frontend/src/components/problem-solver/`)**:
+  - Main route at `/problem-solver` featuring `ProblemSolverHeader`, `AIServiceStatusBadge`, `SuggestedProblemCategories`, `ConversationSidebar`, `ChatMessageItem`, `ChatInputArea`, `HardwareContextConsentModal`, and `FeedbackModal`.
+  - 8 selectable problem categories with quick prompts for instant troubleshooting.
+  - Interactive sidebar grouping sessions by Today, Previous 7 Days, and Older with inline search, rename, and delete.
+  - Screenshot thumbnail previews with full-screen zoom preview.
+  - Hardware context consent modal explaining non-sensitive spec sharing.
+  - Player feedback and reporting modal.
+- **Testing & Quality Assurance**:
+  - 7 comprehensive unit/integration tests in `backend/tests/test_problem_solver.py`.
+  - 84/84 passing tests across the entire backend suite (100% pass rate).
+  - 27/27 Next.js production routes compiled cleanly with 0 TypeScript/ESLint errors.
+
+---
+
 ## [0.9.0] - 2026-11-22
 
 ### Phase 8: PC Compatibility Checker Development (Completed)

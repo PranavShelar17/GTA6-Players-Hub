@@ -47,6 +47,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 # Mount uploads static directory
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 os.makedirs(os.path.join(uploads_dir, "community"), exist_ok=True)
+os.makedirs(os.path.join(uploads_dir, "ai_attachments"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 

@@ -70,6 +70,21 @@ from app.schemas.pc_compatibility import (
     CompatibilityCheckResponse,
     CompatibilityCheckHistoryItem,
 )
+from app.schemas.problem_solver import (
+    SourceReference,
+    KnowledgeSourceRead,
+    KnowledgeDocumentRead,
+    AIMessageCreate,
+    AIMessageRead,
+    AIConversationCreate,
+    AIConversationUpdate,
+    AIConversationRead,
+    AIConversationDetail,
+    AIFeedbackCreate,
+    AIFeedbackRead,
+    AttachmentUploadResponse,
+    AIServiceStatusResponse,
+)
 
 __all__ = [
     "ApiResponse",
@@ -136,4 +151,17 @@ __all__ = [
     "CompatibilityCheckRequest",
     "CompatibilityCheckResponse",
     "CompatibilityCheckHistoryItem",
+    "SourceReference",
+    "KnowledgeSourceRead",
+    "KnowledgeDocumentRead",
+    "AIMessageCreate",
+    "AIMessageRead",
+    "AIConversationCreate",
+    "AIConversationUpdate",
+    "AIConversationRead",
+    "AIConversationDetail",
+    "AIFeedbackCreate",
+    "AIFeedbackRead",
+    "AttachmentUploadResponse",
+    "AIServiceStatusResponse",
 ]
