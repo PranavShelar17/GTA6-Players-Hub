@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-11-22
+
+### Phase 8: PC Compatibility Checker Development (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/pc_compatibility.py`)**:
+  - Entity models for `PCHardwareProfile`, `GameSystemRequirement`, and `PCCompatibilityCheck`.
+  - Alembic migration `0006_phase_8_pc_compatibility.py` establishing relationships, composite indexes, and ownership isolation.
+  - Supabase PostgreSQL schema `backend/supabase_pc_compatibility_schema.sql` with Row Level Security (RLS) policies isolating user profiles and check history.
+- **Backend Services & Anti-Fabrication Logic (`backend/app/services/pc_compatibility_service.py`, `pc_requirements_collector.py`)**:
+  - Truth verification engine guaranteeing no speculative pass/fail scores, fake FPS predictions, or arbitrary bottleneck percentages when official requirements are pending.
+  - Official requirements confirmation status endpoint returning required publisher notice and Rockstar Games Newswire source attribution.
+  - Hardware balance analyzer detecting mechanical hard drive latency, sub-16GB RAM paging risks, low VRAM caps, and 32-bit OS limitations.
+  - Profile management service with ownership isolation and automatic primary profile management.
+- **Backend REST API Endpoints (`backend/app/api/pc_compatibility.py`)**:
+  - Official requirements status (`GET /api/v1/pc/requirements/status`).
+  - Stored requirements listing (`GET /api/v1/pc/requirements`).
+  - Hardware profiles CRUD (`GET/POST /api/v1/pc/profiles`, `GET/PUT/DELETE /api/v1/pc/profiles/{id}`).
+  - Compatibility and balance check execution (`POST /api/v1/pc/compatibility/check`) supporting both logged-in players and anonymous visitors.
+  - Check history audit log (`GET /api/v1/pc/compatibility/history`, `GET /api/v1/pc/compatibility/history/{id}`).
+- **Frontend Modular Architecture (`frontend/src/components/pc-compatibility/`)**:
+  - Dedicated route at `/pc-compatibility` featuring `RequirementsStatusCard`, `HardwareInputForm`, `HardwareSummaryCard`, `CompatibilityResultSection`, `HardwareBottleneckAnalysis`, `UpgradeGuidanceSection`, `SavedPCProfilesModal`, and `CompatibilityHistoryModal`.
+  - Preset hardware templates (Enthusiast 4K, Mainstream 1440p, Budget 1080p, Legacy PC) for instant 1-click loading.
+  - Universal hardware upgrade checklist covering CPU sockets, chipset tiers, BIOS updates, RAM generation incompatibility, PSU wattage, GPU clearance, and thermal airflow.
+  - Player Dashboard (`/dashboard`) integrated with active hardware profiles and direct launch action.
+- **Testing & Quality Assurance**:
+  - 5 comprehensive backend unit and integration tests in `backend/tests/test_pc_compatibility.py`.
+  - 77/77 passing tests across the entire backend suite (100% pass rate).
+  - 27/27 Next.js production routes compiled cleanly with 0 TypeScript/ESLint errors.
+
+---
+
 ## [0.8.0] - 2026-11-22
 
 ### Phase 7: GTA 6 Gaming Community Development (Completed)

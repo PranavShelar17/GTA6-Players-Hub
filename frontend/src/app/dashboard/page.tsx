@@ -24,6 +24,7 @@ import { fetchPlayerWishlist, WishlistItem } from "@/lib/priceApi";
 import { fetchPlayerSavedEvents, SavedEventItem } from "@/lib/eventApi";
 import { fetchNotifications, NotificationItem } from "@/lib/notificationApi";
 import { fetchUserBookmarks, CommunityPostItem } from "@/lib/communityApi";
+import { fetchHardwareProfiles, PCHardwareProfile } from "@/lib/pcCompatibilityApi";
 
 export default function DashboardPage() {
   const { user, profile, preferences, activities, session } = useAuth();
@@ -32,23 +33,26 @@ export default function DashboardPage() {
   const [savedEvents, setSavedEvents] = useState<SavedEventItem[]>([]);
   const [recentNotifications, setRecentNotifications] = useState<NotificationItem[]>([]);
   const [savedDiscussions, setSavedDiscussions] = useState<CommunityPostItem[]>([]);
+  const [hardwareProfiles, setHardwareProfiles] = useState<PCHardwareProfile[]>([]);
 
   useEffect(() => {
     async function loadUserData() {
       if (session?.access_token) {
         try {
-          const [bms, wl, evs, notifs, commBms] = await Promise.all([
+          const [bms, wl, evs, notifs, commBms, hwProfiles] = await Promise.all([
             fetchPlayerBookmarks(session.access_token),
             fetchPlayerWishlist(session.access_token),
             fetchPlayerSavedEvents(session.access_token),
             fetchNotifications(session.access_token, { limit: 4 }),
             fetchUserBookmarks(session.access_token, 3),
+            fetchHardwareProfiles(session.access_token),
           ]);
           setBookmarks(bms);
           setWishlist(wl);
           setSavedEvents(evs);
           setRecentNotifications(notifs);
           setSavedDiscussions(commBms.posts);
+          setHardwareProfiles(hwProfiles);
         } catch {
           // Silent fallback
         }
@@ -169,25 +173,49 @@ export default function DashboardPage() {
       {/* Primary Dashboard Placeholders with Actionable Empty States */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         
-        {/* Saved PC Reports */}
+        {/* Saved PC Reports & Hardware Rigs */}
         <Card className="border-[#1e2330] bg-[#0c0e14]">
           <CardHeader>
             <div className="flex items-center justify-between mb-1">
               <Cpu className="w-5 h-5 text-orange-400" />
-              <Badge variant="default">0 Reports</Badge>
+              <Badge variant="default">{hardwareProfiles.length} Saved {hardwareProfiles.length === 1 ? "Rig" : "Rigs"}</Badge>
             </div>
-            <CardTitle className="text-base">Saved PC Reports</CardTitle>
+            <CardTitle className="text-base">PC Hardware Profiles</CardTitle>
             <CardDescription className="text-xs">
-              Hardware benchmark evaluations and upgrade recommendations.
+              Saved hardware rigs, balance diagnostics, and upgrade evaluations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
-              No saved hardware evaluations found. Configure your CPU and GPU to benchmark expected GTA VI performance.
-            </div>
+            {hardwareProfiles.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {hardwareProfiles.slice(0, 2).map((prof) => (
+                  <div
+                    key={prof.id}
+                    className="p-2.5 rounded-lg bg-[#141724] border border-[#23293a] space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                      <span className="truncate">{prof.profile_name}</span>
+                      {prof.is_primary && (
+                        <span className="text-[10px] text-emerald-400 font-semibold uppercase">Primary</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-300 truncate">
+                      {prof.cpu_manufacturer} {prof.cpu_model} • {prof.gpu_model}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {prof.ram_gb}GB RAM • {prof.storage_type.replace('_', ' ')} • {prof.gpu_vram_gb}GB VRAM
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No saved hardware profiles found. Configure your CPU and GPU to analyze compatibility and component balance.
+              </div>
+            )}
             <Link href="/pc-compatibility" className="block">
               <Button variant="outline" size="sm" className="w-full gap-1.5">
-                Run PC Checker
+                {hardwareProfiles.length > 0 ? "Manage PC Profiles" : "Configure PC Specs"}
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>

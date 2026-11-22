@@ -57,6 +57,19 @@ from app.schemas.community import (
     CommunityBlockRead,
     CommunityMuteRead,
 )
+from app.schemas.pc_compatibility import (
+    PCHardwareProfileCreate,
+    PCHardwareProfileUpdate,
+    PCHardwareProfileRead,
+    GameSystemRequirementRead,
+    RequirementsStatusResponse,
+    ComponentResult,
+    BottleneckNote,
+    UpgradeSuggestion,
+    CompatibilityCheckRequest,
+    CompatibilityCheckResponse,
+    CompatibilityCheckHistoryItem,
+)
 
 __all__ = [
     "ApiResponse",
@@ -112,4 +125,15 @@ __all__ = [
     "CommunityReportRead",
     "CommunityBlockRead",
     "CommunityMuteRead",
+    "PCHardwareProfileCreate",
+    "PCHardwareProfileUpdate",
+    "PCHardwareProfileRead",
+    "GameSystemRequirementRead",
+    "RequirementsStatusResponse",
+    "ComponentResult",
+    "BottleneckNote",
+    "UpgradeSuggestion",
+    "CompatibilityCheckRequest",
+    "CompatibilityCheckResponse",
+    "CompatibilityCheckHistoryItem",
 ]

@@ -44,22 +44,22 @@ export function PCCompatibilitySection() {
               </Link>
               <Link href="/pc-compatibility">
                 <Button variant="outline" size="md" className="gap-2">
-                  View Speculative Specs
+                  View Requirements Status
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             </div>
           </div>
 
-          {/* Right: Speculative Hardware Tier Preview Card */}
+          {/* Right: Modern Gaming Hardware Target Preview Card */}
           <div className="lg:col-span-5">
             <div className="rounded-xl border border-[#273045] bg-[#141824] p-5 space-y-4 shadow-xl">
               <div className="flex items-center justify-between pb-3 border-b border-[#1f2638]">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Target: 1440p / 60 FPS (Estimated)
+                  Modern Gaming Baseline (1440p Target)
                 </span>
                 <span className="text-[11px] font-bold text-rose-400 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
-                  Tier 3 Target
+                  Hardware Target
                 </span>
               </div>
 

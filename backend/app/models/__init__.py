@@ -38,6 +38,11 @@ from app.models.community import (
     CommunityBlock,
     CommunityMute,
 )
+from app.models.pc_compatibility import (
+    PCHardwareProfile,
+    GameSystemRequirement,
+    PCCompatibilityCheck,
+)
 
 __all__ = [
     "PlayerProfile",
@@ -77,4 +82,7 @@ __all__ = [
     "CommunityReport",
     "CommunityBlock",
     "CommunityMute",
+    "PCHardwareProfile",
+    "GameSystemRequirement",
+    "PCCompatibilityCheck",
 ]

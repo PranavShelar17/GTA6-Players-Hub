@@ -84,6 +84,14 @@ async def init_db():
                     logger.info(f"Seeded {post_count} initial verified community posts.")
             except Exception as comm_seed_err:
                 logger.warning(f"Seed community warning: {comm_seed_err}")
+
+            try:
+                from app.services.pc_requirements_collector import seed_initial_system_requirements
+                pc_req_count = await seed_initial_system_requirements(session)
+                if pc_req_count > 0:
+                    logger.info(f"Seeded {pc_req_count} baseline GTA 6 PC requirements entries.")
+            except Exception as pc_seed_err:
+                logger.warning(f"Seed PC requirements warning: {pc_seed_err}")
     except Exception as e:
         logger.warning(f"Database schema initialization warning (e.g. offline PG): {e}")
 
