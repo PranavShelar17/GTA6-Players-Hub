@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-11-22
+
+### Phase 6: GTA 6 Events Calendar & Notification Centre (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/event.py`, `notification.py`)**:
+  - Entity models for `EventCategory`, `EventSource`, `Event`, `SavedEvent`, `EventReminder`, `Notification`, `NotificationPreference`, `NotificationDelivery`, and `PushSubscription`.
+  - Alembic migration `0004_phase_6_events_notifications` establishing relationships, composite indexes, and unique constraints.
+  - Supabase PostgreSQL schema `backend/supabase_events_notifications_schema.sql` with Row Level Security (RLS) isolating player personal calendars and notification inboxes.
+- **Backend Events & Notification Services (`backend/app/services/event_service.py`, `notification_service.py`, `event_collector.py`)**:
+  - Truth tier verification engine enforcing 4 badges (`OFFICIAL`, `VERIFIED`, `COMMUNITY`, `UNCONFIRMED`).
+  - DST-safe IANA timezone conversion logic with automatic UTC normalisation.
+  - Granular notification dispatch pipeline supporting Quiet Hours schedules and player channel opt-outs.
+  - Automated seeding of verified GTA 6 timeline milestones (Take-Two Earnings Calls, Trailer Reveals, Summer Game Fest, Pre-Order activations).
+- **Backend REST API Endpoints (`backend/app/api/events.py`, `notifications.py`)**:
+  - Events catalog (`GET /events`), categories (`GET /events/categories`), slug detail (`GET /events/{slug}`).
+  - Authenticated player saved events (`GET/POST/DELETE /events/saved`, `/events/{id}/save`).
+  - Authenticated event reminders lifecycle (`GET/POST/DELETE /events/reminders`, `/events/{id}/reminders`).
+  - Notification inbox listing (`GET /notifications`) and unread count breakdown (`GET /notifications/unread-count`).
+  - Mark single read (`PATCH /notifications/{id}/read`) and bulk mark all read (`POST /notifications/mark-all-read`).
+  - Player notification preferences (`GET/PATCH /notifications/preferences`).
+  - Web push subscription management (`POST /notifications/push/subscribe`, `DELETE /notifications/push/unsubscribe`).
+- **Home Page & Dashboard Cross-Phase Integration**:
+  - Home Page `/api/v1/home/events` connected to live database `Event` records with fallback.
+  - Player Dashboard (`/dashboard`) integrated with personal Saved Events card and Notification Inbox card.
+- **Frontend Modular Architecture (`frontend/src/components/events/`, `components/notifications/`)**:
+  - Main events route at `/events` supporting interactive Month Grid View and Cards List View.
+  - Dynamic event detail route at `/events/[slug]` with live 4-unit countdown ticker, dual local/UTC timezone display, and verified source links.
+  - Notification Centre route at `/notifications` with category filters, unread badge, and quick actions.
+  - Dedicated notification settings route at `/settings/notifications`.
+  - Navbar (`Header.tsx`) notification bell icon with live unread counter and animated ping badge.
+- **Testing & Quality Assurance**:
+  - 17 new backend tests across `backend/tests/test_events.py` and `backend/tests/test_notifications.py`.
+  - 63/63 passing tests across the entire backend test suite (100% pass rate).
+  - 23/23 clean Next.js production routes with 0 TypeScript/ESLint warnings.
+
+---
+
 ## [0.6.0] - 2026-11-22
 
 ### Phase 5: GTA 6 Price & Deals Tracker Development (Completed)

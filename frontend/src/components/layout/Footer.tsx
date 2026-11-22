@@ -83,6 +83,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/events" className="hover:text-orange-400 transition-colors">
+                  Events Calendar
+                </Link>
+              </li>
+              <li>
                 <Link href="/notifications" className="hover:text-orange-400 transition-colors">
                   Notification Center
                 </Link>

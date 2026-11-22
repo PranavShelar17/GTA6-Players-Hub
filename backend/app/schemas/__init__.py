@@ -10,6 +10,30 @@ from app.schemas.user import (
     UsernameAvailabilityResponse,
     SyncUserRequest,
 )
+from app.schemas.news import (
+    NewsSourceRead,
+    NewsCategoryRead,
+    NewsArticleListItem,
+    NewsArticleDetail,
+)
+from app.schemas.event import (
+    EventCategoryRead,
+    EventSourceRead,
+    EventListItem,
+    EventDetail,
+    SavedEventRead,
+    SavedEventCreate,
+    EventReminderRead,
+    EventReminderCreate,
+)
+from app.schemas.notification import (
+    NotificationRead,
+    UnreadCountResponse,
+    NotificationPreferencesRead,
+    NotificationPreferencesUpdate,
+    PushSubscriptionCreate,
+    PushSubscriptionRead,
+)
 
 __all__ = [
     "ApiResponse",
@@ -26,4 +50,22 @@ __all__ = [
     "UserMeResponse",
     "UsernameAvailabilityResponse",
     "SyncUserRequest",
+    "NewsSourceRead",
+    "NewsCategoryRead",
+    "NewsArticleListItem",
+    "NewsArticleDetail",
+    "EventCategoryRead",
+    "EventSourceRead",
+    "EventListItem",
+    "EventDetail",
+    "SavedEventRead",
+    "SavedEventCreate",
+    "EventReminderRead",
+    "EventReminderCreate",
+    "NotificationRead",
+    "UnreadCountResponse",
+    "NotificationPreferencesRead",
+    "NotificationPreferencesUpdate",
+    "PushSubscriptionCreate",
+    "PushSubscriptionRead",
 ]

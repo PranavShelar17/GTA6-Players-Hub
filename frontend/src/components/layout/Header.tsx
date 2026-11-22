@@ -18,11 +18,14 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  Bell
 } from "lucide-react";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { NotificationBadge } from "@/components/notifications/NotificationBadge";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -150,6 +153,9 @@ export function Header() {
               <Search className="w-4 h-4" />
             </button>
 
+            {/* Notification Indicator Pill */}
+            <NotificationBadge />
+
             {/* Account Actions / User Dropdown */}
             <div className="flex items-center gap-2 border-l border-[#1e2330] pl-3">
               {isAuthenticated ? (
@@ -203,6 +209,24 @@ export function Header() {
                       </Link>
 
                       <Link
+                        href="/events"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <Calendar className="w-4 h-4 text-emerald-400" />
+                        Events Calendar
+                      </Link>
+
+                      <Link
+                        href="/notifications"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <Bell className="w-4 h-4 text-orange-400" />
+                        Notification Centre
+                      </Link>
+
+                      <Link
                         href="/settings"
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
@@ -243,6 +267,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <div className="flex xl:hidden items-center gap-2">
+            <NotificationBadge />
             {!isAuthenticated ? (
               <Link
                 href="/login"

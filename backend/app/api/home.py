@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.models.event import Event
 from app.models.news import NewsArticle
 from app.models.price import PriceObservation, PriceProduct, PriceRegion, PriceStore
 from app.schemas.envelope import ApiResponse
@@ -321,12 +323,44 @@ async def get_homepage_feed(
                 filtered_deals = plat_matched
         deals_items = filtered_deals
 
+    # Query verified events from Phase 6 database with fallback to curated
+    events_items = []
+    try:
+        now_utc = datetime.now(timezone.utc)
+        ev_stmt = (
+            select(Event)
+            .options(selectinload(Event.category))
+            .where(Event.start_time >= now_utc)
+            .order_by(Event.start_time.asc())
+            .limit(4)
+        )
+        ev_res = await db.execute(ev_stmt)
+        db_events = ev_res.scalars().all()
+        for ev in db_events:
+            events_items.append(
+                HomeEventItem(
+                    id=str(ev.id),
+                    event_name=ev.title,
+                    category=ev.category.name if ev.category else "Timeline Event",
+                    date_string=ev.start_time.strftime("%b %d, %Y"),
+                    start_time_iso=ev.start_time.isoformat(),
+                    timezone=ev.timezone,
+                    description=ev.short_summary or ev.description[:200],
+                    is_official=(ev.verification_status == "OFFICIAL")
+                )
+            )
+    except Exception:
+        events_items = []
+
+    if not events_items:
+        events_items = CURATED_EVENTS
+
     return ApiResponse(
         success=True,
         data=HomeAggregatedResponse(
             news=news_items,
             deals=deals_items[:4],
-            events=CURATED_EVENTS,
+            events=events_items,
             community=CURATED_COMMUNITY,
             disclaimer="All news is classified under 4-tier truth verification. Official PC system requirements and global store pricing remain unannounced until published by Rockstar Games."
         )
@@ -443,9 +477,40 @@ async def get_home_deals(
 
 
 @router.get("/events", response_model=ApiResponse[List[HomeEventItem]])
-async def get_home_events():
-    """Retrieves major GTA VI timeline milestones and broadcast events."""
-    return ApiResponse(success=True, data=CURATED_EVENTS)
+async def get_home_events(db: AsyncSession = Depends(get_db)):
+    """Retrieves major GTA VI timeline milestones and broadcast events from database."""
+    events_items = []
+    try:
+        now_utc = datetime.now(timezone.utc)
+        ev_stmt = (
+            select(Event)
+            .options(selectinload(Event.category))
+            .where(Event.start_time >= now_utc)
+            .order_by(Event.start_time.asc())
+            .limit(6)
+        )
+        ev_res = await db.execute(ev_stmt)
+        db_events = ev_res.scalars().all()
+        for ev in db_events:
+            events_items.append(
+                HomeEventItem(
+                    id=str(ev.id),
+                    event_name=ev.title,
+                    category=ev.category.name if ev.category else "Timeline Event",
+                    date_string=ev.start_time.strftime("%b %d, %Y"),
+                    start_time_iso=ev.start_time.isoformat(),
+                    timezone=ev.timezone,
+                    description=ev.short_summary or ev.description[:200],
+                    is_official=(ev.verification_status == "OFFICIAL")
+                )
+            )
+    except Exception:
+        events_items = []
+
+    if not events_items:
+        events_items = CURATED_EVENTS
+
+    return ApiResponse(success=True, data=events_items)
 
 
 @router.get("/community", response_model=ApiResponse[List[HomeCommunityHighlight]])

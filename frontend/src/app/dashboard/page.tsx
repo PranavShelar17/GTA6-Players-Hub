@@ -10,7 +10,9 @@ import {
   ShieldCheck, 
   Activity, 
   Gamepad2,
-  Clock
+  Clock,
+  Calendar,
+  Bell
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -18,22 +20,30 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { fetchPlayerBookmarks, NewsBookmarkItem } from "@/lib/newsApi";
 import { fetchPlayerWishlist, WishlistItem } from "@/lib/priceApi";
+import { fetchPlayerSavedEvents, SavedEventItem } from "@/lib/eventApi";
+import { fetchNotifications, NotificationItem } from "@/lib/notificationApi";
 
 export default function DashboardPage() {
   const { user, profile, preferences, activities, session } = useAuth();
   const [bookmarks, setBookmarks] = useState<NewsBookmarkItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [savedEvents, setSavedEvents] = useState<SavedEventItem[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     async function loadUserData() {
       if (session?.access_token) {
         try {
-          const [bms, wl] = await Promise.all([
+          const [bms, wl, evs, notifs] = await Promise.all([
             fetchPlayerBookmarks(session.access_token),
             fetchPlayerWishlist(session.access_token),
+            fetchPlayerSavedEvents(session.access_token),
+            fetchNotifications(session.access_token, { limit: 4 }),
           ]);
           setBookmarks(bms);
           setWishlist(wl);
+          setSavedEvents(evs);
+          setRecentNotifications(notifs);
         } catch {
           // Silent fallback
         }
@@ -265,6 +275,95 @@ export default function DashboardPage() {
             <Link href="/news" className="block">
               <Button variant="outline" size="sm" className="w-full gap-1.5">
                 Explore News Feed
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Saved Events & Timeline Milestones */}
+        <Card className="border-[#1e2330] bg-[#0c0e14]">
+          <CardHeader>
+            <div className="flex items-center justify-between mb-1">
+              <Calendar className="w-5 h-5 text-orange-400" />
+              <Badge variant="default">{savedEvents.length} Saved</Badge>
+            </div>
+            <CardTitle className="text-base">Saved Milestones & Events</CardTitle>
+            <CardDescription className="text-xs">
+              Take-Two earnings calls, reveals, and broadcasts pinned to your calendar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {savedEvents.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {savedEvents.slice(0, 3).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.event ? `/events/${item.event.slug}` : "/events"}
+                    className="block p-2.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-colors group"
+                  >
+                    <p className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                      {item.event?.title || "Timeline Event"}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between">
+                      <span>{item.event?.category_name || "Event"}</span>
+                      <span className="text-orange-400">View Event →</span>
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No events currently saved. Follow verified earnings calls and trailer dates in the Events Calendar.
+              </div>
+            )}
+            <Link href="/events" className="block">
+              <Button variant="outline" size="sm" className="w-full gap-1.5">
+                Open Events Calendar
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Recent Notifications & Alerts Inbox */}
+        <Card className="border-[#1e2330] bg-[#0c0e14]">
+          <CardHeader>
+            <div className="flex items-center justify-between mb-1">
+              <Bell className="w-5 h-5 text-rose-400" />
+              <Badge variant="default">{recentNotifications.length} Alerts</Badge>
+            </div>
+            <CardTitle className="text-base">Notification Inbox</CardTitle>
+            <CardDescription className="text-xs">
+              Real-time updates on price drops, new articles, and event reminders.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recentNotifications.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {recentNotifications.slice(0, 3).map((notif) => (
+                  <Link
+                    key={notif.id}
+                    href="/notifications"
+                    className="block p-2.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-colors group"
+                  >
+                    <p className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                      {notif.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                      {notif.message}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No alerts currently pending in your inbox.
+              </div>
+            )}
+            <Link href="/notifications" className="block">
+              <Button variant="outline" size="sm" className="w-full gap-1.5">
+                Open Notification Centre
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>

@@ -75,7 +75,7 @@
 
 ### Phase 5 – Price and Deals Tracker (Page 6)
 - **Objective**: Build multi-currency price comparison engine supporting India (INR), USA, UK, EU, UAE; platform matrix (PS5, Xbox Series X/S, PC); historical price charting; verified store listings; wishlist and price drop notification triggers.
-- **Status**: `COMPLETED (Awaiting Approval to start Phase 6)`
+- **Status**: `COMPLETED (Approved & Committed to main)`
 - **Key Deliverables**:
   - SQLAlchemy async models (`price_products`, `price_regions`, `price_stores`, `price_observations`, `price_alerts`, `price_alert_events`, `price_wishlist`, `price_sources`) using fixed-point `Numeric(10, 2)` precision.
   - Alembic migration `0003_phase_5_price` and Supabase RLS schema (`backend/supabase_prices_schema.sql`).
@@ -89,10 +89,20 @@
 
 ---
 
-### Phase 6 – Events and Notifications
-- **Objective**: Deploy GTA 6 events calendar with UTC/local timezone conversion; build user event reminder subscription engine; create in-app notification center with real-time badges, read/unread states, and email notification dispatchers.
-- **Status**: `NOT STARTED`
-- **Dependencies**: Phase 2 & 5.
+### Phase 6 – Events Calendar & Notification Centre
+- **Objective**: Deploy GTA 6 events calendar with UTC/local timezone conversion; build user event reminder subscription engine; create in-app notification center with real-time badges, read/unread states, and multi-channel preference management (In-App, Email, Web Push, Quiet Hours).
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 7)`
+- **Dependencies**: Phase 2, 4, 5.
+- **Key Deliverables**:
+  - SQLAlchemy async models (`event_categories`, `event_sources`, `events`, `saved_events`, `event_reminders`, `notifications`, `notification_preferences`, `notification_deliveries`, `push_subscriptions`).
+  - Alembic migration `0004_phase_6_events_notifications` and Supabase RLS schema (`backend/supabase_events_notifications_schema.sql`).
+  - Full REST API under `/api/v1/events/*` and `/api/v1/notifications/*`.
+  - Modular Next.js events frontend (`/events` and dynamic route `/events/[slug]`) supporting Month Grid View and Cards List View with real-time countdown tickers.
+  - Notification Centre (`/notifications`) and Notification Preferences (`/settings/notifications`).
+  - Navbar unread notification badge indicator with live sync (`NotificationBadge.tsx`).
+  - Cross-phase integration into Home Page (`/api/v1/home/events`) and Player Dashboard (`/dashboard`).
+  - 63/63 passing backend unit & integration tests; 23/23 compiled Next.js routes with 0 errors.
+  - Phase 6 Completion Report.
 
 ---
 

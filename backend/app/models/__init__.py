@@ -10,6 +10,19 @@ from app.models.price import (
     PriceWishlist,
     PriceSource,
 )
+from app.models.event import (
+    EventCategory,
+    EventSource,
+    Event,
+    SavedEvent,
+    EventReminder,
+)
+from app.models.notification import (
+    Notification,
+    NotificationPreference,
+    NotificationDelivery,
+    PushSubscription,
+)
 
 __all__ = [
     "PlayerProfile",
@@ -27,4 +40,13 @@ __all__ = [
     "PriceAlertEvent",
     "PriceWishlist",
     "PriceSource",
+    "EventCategory",
+    "EventSource",
+    "Event",
+    "SavedEvent",
+    "EventReminder",
+    "Notification",
+    "NotificationPreference",
+    "NotificationDelivery",
+    "PushSubscription",
 ]
