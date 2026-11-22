@@ -12,7 +12,8 @@ import {
   Gamepad2,
   Clock,
   Calendar,
-  Bell
+  Bell,
+  Users
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -22,6 +23,7 @@ import { fetchPlayerBookmarks, NewsBookmarkItem } from "@/lib/newsApi";
 import { fetchPlayerWishlist, WishlistItem } from "@/lib/priceApi";
 import { fetchPlayerSavedEvents, SavedEventItem } from "@/lib/eventApi";
 import { fetchNotifications, NotificationItem } from "@/lib/notificationApi";
+import { fetchUserBookmarks, CommunityPostItem } from "@/lib/communityApi";
 
 export default function DashboardPage() {
   const { user, profile, preferences, activities, session } = useAuth();
@@ -29,21 +31,24 @@ export default function DashboardPage() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [savedEvents, setSavedEvents] = useState<SavedEventItem[]>([]);
   const [recentNotifications, setRecentNotifications] = useState<NotificationItem[]>([]);
+  const [savedDiscussions, setSavedDiscussions] = useState<CommunityPostItem[]>([]);
 
   useEffect(() => {
     async function loadUserData() {
       if (session?.access_token) {
         try {
-          const [bms, wl, evs, notifs] = await Promise.all([
+          const [bms, wl, evs, notifs, commBms] = await Promise.all([
             fetchPlayerBookmarks(session.access_token),
             fetchPlayerWishlist(session.access_token),
             fetchPlayerSavedEvents(session.access_token),
             fetchNotifications(session.access_token, { limit: 4 }),
+            fetchUserBookmarks(session.access_token, 3),
           ]);
           setBookmarks(bms);
           setWishlist(wl);
           setSavedEvents(evs);
           setRecentNotifications(notifs);
+          setSavedDiscussions(commBms.posts);
         } catch {
           // Silent fallback
         }
@@ -364,6 +369,51 @@ export default function DashboardPage() {
             <Link href="/notifications" className="block">
               <Button variant="outline" size="sm" className="w-full gap-1.5">
                 Open Notification Centre
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Community Discussions & Bookmarks */}
+        <Card className="border-[#1e2330] bg-[#0c0e14]">
+          <CardHeader>
+            <div className="flex items-center justify-between mb-1">
+              <Users className="w-5 h-5 text-orange-400" />
+              <Badge variant="default">{savedDiscussions.length} Saved</Badge>
+            </div>
+            <CardTitle className="text-base">Gaming Community Library</CardTitle>
+            <CardDescription className="text-xs">
+              Saved theories, vehicle guides, and community discussions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {savedDiscussions.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {savedDiscussions.map((post) => (
+                  <Link
+                    key={post.id}
+                    href={`/community/post/${post.id}`}
+                    className="block p-2.5 rounded-lg bg-[#141724] border border-[#23293a] hover:border-orange-500/40 transition-colors group"
+                  >
+                    <p className="text-xs font-bold text-white group-hover:text-orange-400 transition-colors line-clamp-1">
+                      {post.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center justify-between">
+                      <span>{post.category.name}</span>
+                      <span className="text-orange-400">{post.likes_count} likes • {post.comments_count} replies</span>
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#141724] border border-[#23293a] text-center text-xs text-slate-400">
+                No discussions currently bookmarked. Browse the feed and save discussions.
+              </div>
+            )}
+            <Link href="/community" className="block">
+              <Button variant="outline" size="sm" className="w-full gap-1.5">
+                Explore Gaming Community
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>

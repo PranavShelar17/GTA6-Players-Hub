@@ -70,6 +70,20 @@ async def init_db():
                     logger.info(f"Seeded {event_count} initial verified events.")
             except Exception as event_seed_err:
                 logger.warning(f"Seed event warning: {event_seed_err}")
+
+            try:
+                from app.services.community_collector import (
+                    seed_community_categories,
+                    seed_initial_verified_posts,
+                )
+                cat_count = await seed_community_categories(session)
+                if cat_count > 0:
+                    logger.info(f"Seeded {cat_count} community categories.")
+                post_count = await seed_initial_verified_posts(session)
+                if post_count > 0:
+                    logger.info(f"Seeded {post_count} initial verified community posts.")
+            except Exception as comm_seed_err:
+                logger.warning(f"Seed community warning: {comm_seed_err}")
     except Exception as e:
         logger.warning(f"Database schema initialization warning (e.g. offline PG): {e}")
 

@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.0] - 2026-11-22
+
+### Phase 7: GTA 6 Gaming Community Development (Completed)
+
+#### Added
+- **Database Architecture & Migrations (`backend/app/models/community.py`)**:
+  - Entity models for `CommunityCategory`, `CommunityPost`, `CommunityPostMedia`, `CommunityLike`, `CommunityComment`, `CommunityBookmark`, `CommunityFollow`, `CommunityPoll`, `CommunityPollOption`, `CommunityPollVote`, `CommunityReport`, `CommunityBlock`, and `CommunityMute`.
+  - Alembic migration `0005_phase_7_community_system.py` with foreign keys, composite indexes, and unique constraints.
+  - Supabase PostgreSQL schema `backend/supabase_community_schema.sql` with Row Level Security (RLS) policies for public reads and authenticated user mutations.
+- **Backend Community Services (`backend/app/services/community_service.py`, `media_service.py`, `community_collector.py`)**:
+  - Multi-feed query engine supporting `Latest`, `Popular` (weighted formula: $2 \times \text{likes} + \text{comments}$), and `Following`.
+  - Automated seeding of 10 approved GTA 6 community categories and verified starter discussions and polls.
+  - Media upload pipeline (`media_service.py`) supporting up to 4 images per post, MIME validation (JPEG, PNG, WebP), 10MB limits, and static serving under `/uploads/community/`.
+  - Interactive poll engine with configurable vote modification (`allow_vote_change`) and real-time percentage computation.
+  - Threaded comment architecture supporting 1-level reply hierarchy.
+  - Cross-phase notifications: Dispatches `COMMUNITY` notifications to post and comment authors on likes, replies, and new followers.
+  - Trust and safety moderation engine: In-app reporting, bidirectional player blocking (with auto-unfollow), and silent content muting.
+- **Backend REST API Endpoints (`backend/app/api/community.py`)**:
+  - Categories (`GET /community/categories`), posts feed (`GET /community/posts`), post creation (`POST /community/posts`), post detail (`GET /community/posts/{id}`), author updates (`PATCH /community/posts/{id}`), and soft deletion (`DELETE /community/posts/{id}`).
+  - Media upload (`POST /community/media/upload`).
+  - Like/unlike toggle (`POST/DELETE /community/posts/{id}/like`).
+  - Comment and reply lifecycle (`GET/POST /community/posts/{id}/comments`, `PATCH/DELETE /community/comments/{id}`).
+  - Saved bookmarks library (`GET/POST/DELETE /community/bookmarks`, `/community/posts/{id}/bookmark`).
+  - Community polls voting (`POST /community/polls/{id}/vote`, `GET /community/polls/{id}/results`).
+  - Public player community profiles (`GET /community/player/{username}`).
+  - Social network follows (`POST/DELETE /community/player/{id}/follow`).
+  - Moderation & safety (`POST /community/reports`, `POST/DELETE /community/player/{id}/block`, `POST/DELETE /community/player/{id}/mute`).
+- **Frontend Modular Architecture (`frontend/src/components/community/`)**:
+  - Main community route at `/community` with multi-tab feeds (`Latest`, `Popular`, `Following`), keyword search, category pills carousel, and community guidelines sidebar.
+  - Post composer at `/community/create` with multi-image upload dropzone, rich textarea, and optional poll builder.
+  - Single discussion route at `/community/post/[postId]` with media gallery, interactive poll voting, like/bookmark/share action bar, and threaded comments.
+  - Public player profile route at `/community/player/[username]` with follower counters, follow/unfollow toggle, and moderation controls.
+  - Player saved bookmarks route at `/community/bookmarks`.
+  - Player Dashboard (`/dashboard`) integrated with Community Discussions & Library widget.
+- **Testing & Quality Assurance**:
+  - 9 new backend integration tests in `backend/tests/test_community.py`.
+  - 72/72 passing tests across the entire backend suite (100% pass rate).
+  - 25/25 Next.js production routes compiled cleanly with 0 TypeScript/ESLint errors.
+
+---
+
 ## [0.7.0] - 2026-11-22
 
 ### Phase 6: GTA 6 Events Calendar & Notification Centre (Completed)

@@ -23,6 +23,21 @@ from app.models.notification import (
     NotificationDelivery,
     PushSubscription,
 )
+from app.models.community import (
+    CommunityCategory,
+    CommunityPost,
+    CommunityPostMedia,
+    CommunityLike,
+    CommunityComment,
+    CommunityBookmark,
+    CommunityFollow,
+    CommunityPoll,
+    CommunityPollOption,
+    CommunityPollVote,
+    CommunityReport,
+    CommunityBlock,
+    CommunityMute,
+)
 
 __all__ = [
     "PlayerProfile",
@@ -49,4 +64,17 @@ __all__ = [
     "NotificationPreference",
     "NotificationDelivery",
     "PushSubscription",
+    "CommunityCategory",
+    "CommunityPost",
+    "CommunityPostMedia",
+    "CommunityLike",
+    "CommunityComment",
+    "CommunityBookmark",
+    "CommunityFollow",
+    "CommunityPoll",
+    "CommunityPollOption",
+    "CommunityPollVote",
+    "CommunityReport",
+    "CommunityBlock",
+    "CommunityMute",
 ]

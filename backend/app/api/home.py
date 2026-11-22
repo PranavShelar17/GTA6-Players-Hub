@@ -355,13 +355,62 @@ async def get_homepage_feed(
     if not events_items:
         events_items = CURATED_EVENTS
 
+    # Community highlights
+    community_items = []
+    try:
+        from app.models.community import CommunityPost
+        from app.models.user import PlayerProfile
+
+        comm_stmt = (
+            select(CommunityPost)
+            .options(selectinload(CommunityPost.category))
+            .where(
+                CommunityPost.post_status == "PUBLISHED",
+                CommunityPost.deleted_at.is_(None),
+            )
+            .order_by(
+                CommunityPost.is_pinned.desc(),
+                (CommunityPost.likes_count * 2 + CommunityPost.comments_count).desc(),
+                CommunityPost.created_at.desc(),
+            )
+            .limit(4)
+        )
+        comm_res = await db.execute(comm_stmt)
+        c_posts = comm_res.scalars().all()
+        if c_posts:
+            c_author_ids = [p.player_id for p in c_posts]
+            c_prof_stmt = select(PlayerProfile).where(PlayerProfile.user_id.in_(c_author_ids))
+            c_prof_res = await db.execute(c_prof_stmt)
+            c_profs = {p.user_id: p for p in c_prof_res.scalars().all()}
+
+            for p in c_posts:
+                prof = c_profs.get(p.player_id)
+                community_items.append(
+                    HomeCommunityHighlight(
+                        id=str(p.id),
+                        title=p.title,
+                        author_username=prof.username if prof else "Player",
+                        author_avatar_url=prof.avatar_url if prof else None,
+                        author_platform=prof.preferred_platform if prof and prof.preferred_platform else "PC",
+                        category=p.category.name if p.category else "General Discussion",
+                        published_at=p.created_at.isoformat(),
+                        replies_count=p.comments_count,
+                        likes_count=p.likes_count,
+                    )
+                )
+    except Exception:
+        community_items = []
+
+    if not community_items:
+        community_items = CURATED_COMMUNITY
+
     return ApiResponse(
         success=True,
         data=HomeAggregatedResponse(
             news=news_items,
             deals=deals_items[:4],
             events=events_items,
-            community=CURATED_COMMUNITY,
+            community=community_items,
             disclaimer="All news is classified under 4-tier truth verification. Official PC system requirements and global store pricing remain unannounced until published by Rockstar Games."
         )
     )
@@ -514,6 +563,55 @@ async def get_home_events(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/community", response_model=ApiResponse[List[HomeCommunityHighlight]])
-async def get_home_community():
-    """Retrieves trending public community discussions."""
-    return ApiResponse(success=True, data=CURATED_COMMUNITY)
+async def get_home_community(db: AsyncSession = Depends(get_db)):
+    """Retrieves trending public community discussions from database."""
+    community_items = []
+    try:
+        from app.models.community import CommunityPost
+        from app.models.user import PlayerProfile
+
+        stmt = (
+            select(CommunityPost)
+            .options(selectinload(CommunityPost.category))
+            .where(
+                CommunityPost.post_status == "PUBLISHED",
+                CommunityPost.deleted_at.is_(None),
+            )
+            .order_by(
+                CommunityPost.is_pinned.desc(),
+                (CommunityPost.likes_count * 2 + CommunityPost.comments_count).desc(),
+                CommunityPost.created_at.desc(),
+            )
+            .limit(4)
+        )
+        res = await db.execute(stmt)
+        posts = res.scalars().all()
+
+        if posts:
+            author_ids = [p.player_id for p in posts]
+            prof_stmt = select(PlayerProfile).where(PlayerProfile.user_id.in_(author_ids))
+            prof_res = await db.execute(prof_stmt)
+            profiles = {p.user_id: p for p in prof_res.scalars().all()}
+
+            for p in posts:
+                prof = profiles.get(p.player_id)
+                community_items.append(
+                    HomeCommunityHighlight(
+                        id=str(p.id),
+                        title=p.title,
+                        author_username=prof.username if prof else "Player",
+                        author_avatar_url=prof.avatar_url if prof else None,
+                        author_platform=prof.preferred_platform if prof and prof.preferred_platform else "PC",
+                        category=p.category.name if p.category else "General Discussion",
+                        published_at=p.created_at.isoformat(),
+                        replies_count=p.comments_count,
+                        likes_count=p.likes_count,
+                    )
+                )
+    except Exception:
+        community_items = []
+
+    if not community_items:
+        community_items = CURATED_COMMUNITY
+
+    return ApiResponse(success=True, data=community_items)
