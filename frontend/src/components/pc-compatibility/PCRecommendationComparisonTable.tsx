@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  AlertTriangle, 
-  BatteryCharging, 
-  Gauge, 
+import {
+  AlertTriangle,
+  BatteryCharging,
+  Gauge,
   Layers,
   Filter,
   Code
 } from "lucide-react";
-import { 
-  UserVsRecommendationComparisonResponse, 
-  PCHardwareProfileCreate, 
+import {
+  UserVsRecommendationComparisonResponse,
+  PCHardwareProfileCreate,
   compareUserPCWithRecommendations,
   UpgradeAdvisorPlan
 } from "@/lib/pcCompatibilityApi";
@@ -105,10 +105,10 @@ export function PCRecommendationComparisonTable({
       fallbackStatus === "EXCEEDS_ALL" || fallbackStatus === "MEETS_HIGH"
         ? "Better hardware capability"
         : fallbackStatus === "MEETS_MID"
-        ? "Similar hardware capability"
-        : fallbackStatus === "MEETS_ENTRY"
-        ? "Lower hardware capability"
-        : "Lower hardware capability"
+          ? "Similar hardware capability"
+          : fallbackStatus === "MEETS_ENTRY"
+            ? "Lower hardware capability"
+            : "Lower hardware capability"
     );
 
     if (text === "Better hardware capability") {
@@ -168,22 +168,20 @@ export function PCRecommendationComparisonTable({
           <button
             type="button"
             onClick={() => setViewMode("SIMPLE")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === "SIMPLE"
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === "SIMPLE"
                 ? "bg-sky-500 text-white shadow-sm"
                 : "text-slate-400 hover:text-white"
-            }`}
+              }`}
           >
             Simple View (Beginner)
           </button>
           <button
             type="button"
             onClick={() => setViewMode("DETAILED")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              viewMode === "DETAILED"
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${viewMode === "DETAILED"
                 ? "bg-sky-500 text-white shadow-sm"
                 : "text-slate-400 hover:text-white"
-            }`}
+              }`}
           >
             <Code className="w-3.5 h-3.5" />
             <span>Detailed Technical (Advanced)</span>
@@ -220,11 +218,10 @@ export function PCRecommendationComparisonTable({
                   key={tgt.id}
                   type="button"
                   onClick={() => setComparisonTarget(tgt.id as "ALL" | "TOP" | "MEDIUM" | "LOW")}
-                  className={`px-3 py-1 rounded-lg border font-bold transition-all ${
-                    comparisonTarget === tgt.id
+                  className={`px-3 py-1 rounded-lg border font-bold transition-all ${comparisonTarget === tgt.id
                       ? "bg-sky-500 text-white border-sky-400"
                       : "bg-[#181d2c] text-slate-400 border-[#262f44] hover:text-slate-200"
-                  }`}
+                    }`}
                 >
                   {tgt.label}
                 </button>
@@ -246,13 +243,12 @@ export function PCRecommendationComparisonTable({
           </div>
 
           {/* Power Headroom Analysis Banner */}
-          <div className={`p-4 rounded-xl border space-y-2.5 transition-all ${
-            data.power_analysis.status === "HEALTHY_HEADROOM"
+          <div className={`p-4 rounded-xl border space-y-2.5 transition-all ${data.power_analysis.status === "HEALTHY_HEADROOM"
               ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-200"
               : data.power_analysis.status === "DEFICIT_WARNING"
-              ? "bg-rose-950/25 border-rose-500/40 text-rose-200"
-              : "bg-amber-950/20 border-amber-500/30 text-amber-200"
-          }`}>
+                ? "bg-rose-950/25 border-rose-500/40 text-rose-200"
+                : "bg-amber-950/20 border-amber-500/30 text-amber-200"
+            }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider">
                 <BatteryCharging className="w-4 h-4" />
