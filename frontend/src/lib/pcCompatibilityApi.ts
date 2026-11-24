@@ -398,6 +398,90 @@ export async function compareSavedProfiles(
 }
 
 // -----------------------------------------------------------------------------
+// Hardware Catalog & Retail Components
+// -----------------------------------------------------------------------------
+export interface HardwareCatalogItem {
+  category: "CPU" | "GPU" | "MOTHERBOARD" | "RAM" | "STORAGE" | "PSU" | "CABINET" | "COOLER";
+  manufacturer: string;
+  model: string;
+  specs_summary: string;
+  price_inr: number;
+  price_usd: number;
+  availability: string;
+  retailer: string;
+  source_url: string;
+  last_verified: string;
+}
+
+export interface HardwareCatalogResponse {
+  catalog: HardwareCatalogItem[];
+  source_date: string;
+  currency: string;
+  disclaimer: string;
+}
+
+export async function fetchHardwareCatalog(): Promise<HardwareCatalogResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/pc/catalog`, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to load hardware catalog");
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching hardware catalog:", err);
+    return {
+      catalog: [],
+      source_date: "November 2026",
+      currency: "INR",
+      disclaimer: "Catalog offline fallback.",
+    };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Component Compatibility & Upgrade Advisor
+// -----------------------------------------------------------------------------
+export interface ComponentCompatibilityCheckItem {
+  rule: string;
+  component_scope: string;
+  status: "PASSED" | "WARNING" | "INCOMPATIBLE" | "UNVERIFIED";
+  details: string;
+  mitigation?: string | null;
+}
+
+export interface BuildCompatibilityValidationReport {
+  build_tier: string;
+  overall_compatibility: "FULLY_COMPATIBLE" | "COMPATIBLE_WITH_CAVEATS" | "INCOMPATIBLE";
+  checks: ComponentCompatibilityCheckItem[];
+}
+
+export interface SuggestedUpgradeItem {
+  existing_component: string;
+  suggested_replacement: string;
+  why_it_helps: string;
+  compatibility_prerequisites: string[];
+  estimated_cost_inr: number;
+  estimated_cost_usd: number;
+  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+}
+
+export interface UpgradeAdvisorPlan {
+  recommended_strategy:
+    | "ONE_OR_TWO_COMPONENTS"
+    | "PLATFORM_UPGRADE"
+    | "KEEP_EXISTING"
+    | "COMPLETE_NEW_BUILD";
+  strategy_headline: string;
+  strategy_explanation: string;
+  target_budget_tier: string;
+  suggested_upgrades: SuggestedUpgradeItem[];
+  prerequisite_checks: string[];
+  estimated_total_upgrade_inr: number;
+  estimated_total_upgrade_usd: number;
+}
+
+// -----------------------------------------------------------------------------
 // Top 3 Gaming PC Recommendations & Smart Comparison
 // -----------------------------------------------------------------------------
 export interface RecommendedPCBuild {
@@ -415,6 +499,14 @@ export interface RecommendedPCBuild {
   psu: string;
   cooling: string;
   case_airflow: string;
+  cabinet?: string;
+  cabinet_clearance_gpu_mm?: number;
+  motherboard_socket?: string;
+  motherboard_chipset?: string;
+  ram_generation?: string;
+  ram_speed_mhz?: number;
+  psu_efficiency?: string;
+  psu_connectors?: string;
   upgrade_potential: string;
   estimated_system_power_w: number;
   recommended_psu_wattage: number;
@@ -422,6 +514,10 @@ export interface RecommendedPCBuild {
   price_inr?: number | null;
   price_source_date: string;
   price_status: "VERIFIED_ESTIMATE" | "PRICE_UNAVAILABLE";
+  gst_status?: string;
+  retailer_sources?: string[];
+  component_price_breakdown?: Record<string, number> | null;
+  compatibility_report?: BuildCompatibilityValidationReport | null;
   strengths: string[];
   limitations: string[];
   ideal_for: string[];
@@ -439,19 +535,25 @@ export interface PersonalizedMatchRecommendation {
 export interface GamingPCRecommendationsResponse {
   recommendations: RecommendedPCBuild[];
   personalized_match?: PersonalizedMatchRecommendation | null;
+  upgrade_advisor?: UpgradeAdvisorPlan | null;
+  user_budget_inr?: number | null;
   currency_requested: string;
   gta6_disclaimer: string;
 }
 
 export async function fetchGamingPCRecommendations(
-  budget?: number,
+  budget?: string | number,
   intendedUse?: string,
-  currency: string = "USD"
+  currency: string = "INR",
+  budgetInr?: number
 ): Promise<GamingPCRecommendationsResponse> {
   const params = new URLSearchParams();
   if (budget) params.append("budget", budget.toString());
   if (intendedUse) params.append("intended_use", intendedUse);
   if (currency) params.append("currency", currency);
+  if (budgetInr !== undefined && budgetInr !== null) {
+    params.append("budget_inr", budgetInr.toString());
+  }
 
   const res = await fetch(`${API_BASE_URL}/pc/recommendations?${params.toString()}`, {
     headers: { "Content-Type": "application/json" },
@@ -469,6 +571,7 @@ export interface UserVsRecommendationComparisonRow {
   entry_level_value: string;
   mid_range_value: string;
   high_end_value: string;
+  capability_label?: string;
   performance_difference: string;
   compatibility_status:
     | "BELOW_ENTRY"
@@ -477,6 +580,7 @@ export interface UserVsRecommendationComparisonRow {
     | "MEETS_HIGH"
     | "EXCEEDS_ALL";
   upgrade_priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "OPTIONAL" | "NONE";
+  technical_details?: Record<string, string> | null;
   explanation: string;
 }
 
@@ -492,6 +596,7 @@ export interface UserVsRecommendationComparisonResponse {
   user_profile_name: string;
   comparison_table: UserVsRecommendationComparisonRow[];
   power_analysis: PowerHeadroomAnalysis;
+  upgrade_advisor?: UpgradeAdvisorPlan | null;
   overall_assessment: string;
   gta6_disclaimer: string;
 }

@@ -1,23 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Cpu, 
-  HardDrive, 
   Monitor, 
   RotateCcw, 
   Zap, 
   Info,
   BatteryCharging,
-  Wind,
   Sparkles,
-  Layers,
-  AlertTriangle
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { PCHardwareProfileCreate } from "@/lib/pcCompatibilityApi";
+import { 
+  PCHardwareProfileCreate, 
+  HardwareCatalogItem, 
+  fetchHardwareCatalog 
+} from "@/lib/pcCompatibilityApi";
 
 interface HardwareInputFormProps {
   initialSpecs?: PCHardwareProfileCreate;
@@ -204,11 +205,108 @@ export function HardwareInputForm({
   const [saveProfile, setSaveProfile] = useState<boolean>(isAuthenticated);
   const [profileName, setProfileName] = useState<string>(specs.profile_name || "My Gaming Rig");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<HardwareCatalogItem[]>([]);
+
+  useEffect(() => {
+    fetchHardwareCatalog()
+      .then((res) => {
+        if (res?.catalog && res.catalog.length > 0) {
+          setCatalog(res.catalog);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load catalog for autocomplete:", err);
+      });
+  }, []);
 
   const handleFieldChange = (field: keyof PCHardwareProfileCreate, value: string | number | boolean | null) => {
     setSpecs((prev) => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  // Smart CPU Auto-Detection
+  const handleCPUChange = (model: string) => {
+    const lower = model.toLowerCase();
+    let manufacturer = specs.cpu_manufacturer;
+    let cores = specs.cpu_cores;
+    let threads = specs.cpu_threads;
+
+    if (lower.includes("ryzen") || lower.includes("amd")) {
+      manufacturer = "AMD";
+    } else if (lower.includes("core") || lower.includes("intel") || lower.includes("i5") || lower.includes("i7") || lower.includes("i9")) {
+      manufacturer = "Intel";
+    }
+
+    if (lower.includes("7800x3d") || lower.includes("5700x3d") || lower.includes("7700x")) {
+      cores = 8;
+      threads = 16;
+    } else if (lower.includes("7600") || lower.includes("5600") || lower.includes("12400") || lower.includes("10400")) {
+      cores = 6;
+      threads = 12;
+    } else if (lower.includes("14700") || lower.includes("13700")) {
+      cores = 20;
+      threads = 28;
+    } else if (lower.includes("13600") || lower.includes("14600")) {
+      cores = 14;
+      threads = 20;
+    } else if (lower.includes("13400") || lower.includes("14400")) {
+      cores = 10;
+      threads = 16;
+    }
+
+    setSpecs((prev) => ({
+      ...prev,
+      cpu_model: model,
+      cpu_manufacturer: manufacturer,
+      cpu_cores: cores,
+      cpu_threads: threads,
+    }));
+  };
+
+  // Smart GPU Auto-Detection
+  const handleGPUChange = (model: string) => {
+    const lower = model.toLowerCase();
+    let manufacturer = specs.gpu_manufacturer;
+    let vram = specs.gpu_vram_gb;
+    let psu = specs.psu_wattage;
+
+    if (lower.includes("geforce") || lower.includes("rtx") || lower.includes("gtx") || lower.includes("nvidia")) {
+      manufacturer = "NVIDIA";
+    } else if (lower.includes("radeon") || lower.includes("rx") || lower.includes("amd")) {
+      manufacturer = "AMD";
+    } else if (lower.includes("arc") || lower.includes("intel")) {
+      manufacturer = "Intel";
+    }
+
+    // Auto-detect VRAM & typical PSU requirement
+    if (lower.includes("4090")) {
+      vram = 24.0;
+      if (!psu || psu < 850) psu = 850;
+    } else if (lower.includes("4080") || lower.includes("7900 xt") || lower.includes("7800 xt") || lower.includes("7600 xt") || lower.includes("a770 16")) {
+      vram = 16.0;
+      if (!psu || psu < 750) psu = 750;
+    } else if (lower.includes("4070") || lower.includes("6700 xt") || lower.includes("3060 12")) {
+      vram = 12.0;
+      if (!psu || psu < 650) psu = 650;
+    } else if (lower.includes("4060") || lower.includes("7600") || lower.includes("6600") || lower.includes("3070") || lower.includes("3060 ti") || lower.includes("2070") || lower.includes("2060 super")) {
+      vram = 8.0;
+      if (!psu || psu < 550) psu = 550;
+    } else if (lower.includes("1660") || lower.includes("1060 6")) {
+      vram = 6.0;
+      if (!psu || psu < 450) psu = 450;
+    } else if (lower.includes("1060 3")) {
+      vram = 3.0;
+      if (!psu || psu < 400) psu = 400;
+    }
+
+    setSpecs((prev) => ({
+      ...prev,
+      gpu_model: model,
+      gpu_manufacturer: manufacturer,
+      gpu_vram_gb: vram,
+      psu_wattage: psu,
     }));
   };
 
@@ -365,16 +463,49 @@ export function HardwareInputForm({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Processor Model *
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Processor Model *</span>
+                  <span className="text-[10px] text-orange-400 font-normal">Searchable Autocomplete</span>
                 </label>
                 <Input
+                  list="cpu-models-list"
                   value={specs.cpu_model}
-                  onChange={(e) => handleFieldChange("cpu_model", e.target.value)}
-                  placeholder="e.g. Ryzen 7 7800X3D or Core i7-13700K"
+                  onChange={(e) => handleCPUChange(e.target.value)}
+                  placeholder="Type or select model (e.g. Ryzen 7 7800X3D, Core i5-13600K)"
                   className="text-xs h-9"
                   required
                 />
+                <datalist id="cpu-models-list">
+                  <option value="AMD Ryzen 7 7800X3D" />
+                  <option value="AMD Ryzen 7 5700X3D" />
+                  <option value="AMD Ryzen 5 7600" />
+                  <option value="AMD Ryzen 5 5600" />
+                  <option value="Intel Core i7-14700K" />
+                  <option value="Intel Core i5-13600K" />
+                  <option value="Intel Core i5-13400F" />
+                  <option value="Intel Core i5-12400F" />
+                  <option value="Intel Core i5-10400F" />
+                  <option value="Intel Core i5-6500" />
+                  {catalog
+                    .filter((item) => item.category === "CPU")
+                    .map((item, idx) => (
+                      <option key={idx} value={item.model} />
+                    ))}
+                </datalist>
+
+                {/* Popular CPU quick pick */}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {["Ryzen 7 7800X3D", "Core i5-13400F", "Ryzen 5 7600", "Ryzen 5 5600", "Core i5-12400F"].map((cpu) => (
+                    <button
+                      key={cpu}
+                      type="button"
+                      onClick={() => handleCPUChange(cpu)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-[#171c2b] hover:bg-[#232b40] text-slate-300 border border-white/5"
+                    >
+                      {cpu}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -436,16 +567,56 @@ export function HardwareInputForm({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  GPU Model *
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>GPU Model *</span>
+                  <span className="text-[10px] text-orange-400 font-normal">Auto-detects VRAM & PSU</span>
                 </label>
                 <Input
+                  list="gpu-models-list"
                   value={specs.gpu_model}
-                  onChange={(e) => handleFieldChange("gpu_model", e.target.value)}
-                  placeholder="e.g. GeForce RTX 4070 Super or Radeon RX 7800 XT"
+                  onChange={(e) => handleGPUChange(e.target.value)}
+                  placeholder="Type or select model (e.g. GeForce RTX 4070 Super, Radeon RX 7800 XT)"
                   className="text-xs h-9"
                   required
                 />
+                <datalist id="gpu-models-list">
+                  <option value="NVIDIA GeForce RTX 4080 Super 16GB" />
+                  <option value="NVIDIA GeForce RTX 4070 Super 12GB" />
+                  <option value="NVIDIA GeForce RTX 4070 12GB" />
+                  <option value="NVIDIA GeForce RTX 4060 Ti 16GB" />
+                  <option value="NVIDIA GeForce RTX 4060 8GB" />
+                  <option value="NVIDIA GeForce RTX 3070 8GB" />
+                  <option value="NVIDIA GeForce RTX 3060 12GB" />
+                  <option value="NVIDIA GeForce GTX 1660 Super 6GB" />
+                  <option value="NVIDIA GeForce GTX 1060 6GB" />
+                  <option value="AMD Radeon RX 7900 XTX 24GB" />
+                  <option value="AMD Radeon RX 7800 XT 16GB" />
+                  <option value="AMD Radeon RX 7600 XT 16GB" />
+                  <option value="AMD Radeon RX 7600 8GB" />
+                  <option value="AMD Radeon RX 6700 XT 12GB" />
+                  <option value="AMD Radeon RX 6600 8GB" />
+                  <option value="Intel Arc A770 16GB" />
+                  <option value="Intel Arc A750 8GB" />
+                  {catalog
+                    .filter((item) => item.category === "GPU")
+                    .map((item, idx) => (
+                      <option key={idx} value={item.model} />
+                    ))}
+                </datalist>
+
+                {/* Popular GPU quick pick */}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {["RTX 4070 Super", "RTX 4060 8GB", "RX 7800 XT", "RX 7600 XT", "RX 6600 8GB", "GTX 1660 Super"].map((gpu) => (
+                    <button
+                      key={gpu}
+                      type="button"
+                      onClick={() => handleGPUChange(gpu)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-[#171c2b] hover:bg-[#232b40] text-slate-300 border border-white/5"
+                    >
+                      {gpu}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

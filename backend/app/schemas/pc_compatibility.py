@@ -209,8 +209,66 @@ class PCProfileComparisonResponse(BaseModel):
 
 
 # -----------------------------------------------------------------------------
+# Hardware Catalog & Retail Components
+# -----------------------------------------------------------------------------
+class HardwareCatalogItem(BaseModel):
+    category: str  # CPU, GPU, MOTHERBOARD, RAM, STORAGE, PSU, CABINET, COOLER
+    manufacturer: str
+    model: str
+    specs_summary: str
+    price_inr: float
+    price_usd: float
+    availability: str = "IN_STOCK"
+    retailer: str = "PrimeABGB / MDComputers / Vedant / Amazon IN"
+    source_url: str = "https://www.primeabgb.com"
+    last_verified: str = "November 2026"
+
+
+class HardwareCatalogResponse(BaseModel):
+    catalog: List[HardwareCatalogItem]
+    source_date: str = "November 2026 Verified Aggregate"
+    currency: str = "INR"
+    disclaimer: str = "Component prices are Indian retail market aggregates inclusive of GST."
+
+
+# -----------------------------------------------------------------------------
 # Top 3 Recommended Gaming PCs & Smart Recommendations
 # -----------------------------------------------------------------------------
+class ComponentCompatibilityCheckItem(BaseModel):
+    rule: str  # CPU_MOTHERBOARD, RAM_MOTHERBOARD, GPU_CABINET_PSU, PSU_HEADROOM, COOLER_SOCKET_TDP, STORAGE_M2_SATA
+    component_scope: str
+    status: str  # PASSED, WARNING, INCOMPATIBLE, UNVERIFIED
+    details: str
+    mitigation: Optional[str] = None
+
+
+class BuildCompatibilityValidationReport(BaseModel):
+    build_tier: str  # HIGH_END, MID_RANGE, ENTRY_LEVEL
+    overall_compatibility: str  # FULLY_COMPATIBLE, COMPATIBLE_WITH_CAVEATS, INCOMPATIBLE
+    checks: List[ComponentCompatibilityCheckItem] = []
+
+
+class SuggestedUpgradeItem(BaseModel):
+    existing_component: str
+    suggested_replacement: str
+    why_it_helps: str
+    compatibility_prerequisites: List[str]
+    estimated_cost_inr: float
+    estimated_cost_usd: float
+    priority: str  # CRITICAL, HIGH, MEDIUM, LOW
+
+
+class UpgradeAdvisorPlan(BaseModel):
+    recommended_strategy: str  # ONE_OR_TWO_COMPONENTS, PLATFORM_UPGRADE, KEEP_EXISTING, COMPLETE_NEW_BUILD
+    strategy_headline: str
+    strategy_explanation: str
+    target_budget_tier: str
+    suggested_upgrades: List[SuggestedUpgradeItem] = []
+    prerequisite_checks: List[str] = []
+    estimated_total_upgrade_inr: float
+    estimated_total_upgrade_usd: float
+
+
 class RecommendedPCBuild(BaseModel):
     tier: str  # HIGH_END, MID_RANGE, ENTRY_LEVEL
     title: str
@@ -226,13 +284,30 @@ class RecommendedPCBuild(BaseModel):
     psu: str
     cooling: str
     case_airflow: str
+    cabinet: str = "High-Airflow Mesh ATX Case"
+    cabinet_clearance_gpu_mm: int = 360
+    motherboard_socket: str = "AM5"
+    motherboard_chipset: str = "B650"
+    ram_generation: str = "DDR5"
+    ram_speed_mhz: int = 6000
+    psu_efficiency: str = "80+ Gold"
+    psu_connectors: str = "1x 12VHPWR + 2x PCIe 8-pin"
     upgrade_potential: str
     estimated_system_power_w: int
     recommended_psu_wattage: int
     price_usd: Optional[float] = None
     price_inr: Optional[float] = None
-    price_source_date: str
-    price_status: str  # VERIFIED_ESTIMATE, PRICE_UNAVAILABLE
+    price_source_date: str = "November 2026 Component Aggregate"
+    price_status: str = "VERIFIED_ESTIMATE"  # VERIFIED_ESTIMATE, PRICE_UNAVAILABLE
+    gst_status: str = "GST Included (18% Retail Standard in India)"
+    retailer_sources: List[str] = [
+        "PrimeABGB",
+        "MDComputers",
+        "Vedant Computers",
+        "Amazon India",
+    ]
+    component_price_breakdown: Optional[Dict[str, float]] = None
+    compatibility_report: Optional[BuildCompatibilityValidationReport] = None
     strengths: List[str]
     limitations: List[str]
     ideal_for: List[str]
@@ -240,7 +315,7 @@ class RecommendedPCBuild(BaseModel):
 
 class PersonalizedMatchRecommendation(BaseModel):
     recommended_tier: str  # HIGH_END, MID_RANGE, ENTRY_LEVEL
-    budget_category: str  # BUDGET, MID, HIGH, ANY
+    budget_category: str  # BUDGET, MID, HIGH, ANY, or INR amount string
     intended_use: str  # GTA_6_PREPARATION, GENERAL_AAA, COMPETITIVE, STREAMING_RECORDING, CONTENT_CREATION
     match_headline: str
     rationale: str
@@ -250,7 +325,9 @@ class PersonalizedMatchRecommendation(BaseModel):
 class GamingPCRecommendationsResponse(BaseModel):
     recommendations: List[RecommendedPCBuild]
     personalized_match: Optional[PersonalizedMatchRecommendation] = None
-    currency_requested: str = "USD"
+    upgrade_advisor: Optional[UpgradeAdvisorPlan] = None
+    user_budget_inr: Optional[float] = None
+    currency_requested: str = "INR"
     gta6_disclaimer: str
 
 
@@ -263,14 +340,16 @@ class UserPCRecommendationComparisonRequest(BaseModel):
 
 
 class UserVsRecommendationComparisonRow(BaseModel):
-    component: str  # CPU, GPU, VRAM, RAM, Motherboard, Storage, PSU, Cooling
+    component: str  # CPU, GPU, VRAM, RAM, Motherboard, Storage, PSU, Cooling, Cabinet
     user_value: str
     entry_level_value: str
     mid_range_value: str
     high_end_value: str
+    capability_label: str = "Similar hardware capability"  # "Better hardware capability", "Similar hardware capability", "Lower hardware capability", "Not compatible", "Insufficient information"
     performance_difference: str
     compatibility_status: str  # BELOW_ENTRY, MEETS_ENTRY, MEETS_MID, MEETS_HIGH, EXCEEDS_ALL
     upgrade_priority: str  # CRITICAL, HIGH, MEDIUM, LOW, OPTIONAL, NONE
+    technical_details: Optional[Dict[str, str]] = None
     explanation: str
 
 
@@ -286,5 +365,6 @@ class UserVsRecommendationComparisonResponse(BaseModel):
     user_profile_name: str
     comparison_table: List[UserVsRecommendationComparisonRow]
     power_analysis: PowerHeadroomAnalysis
+    upgrade_advisor: Optional[UpgradeAdvisorPlan] = None
     overall_assessment: str
     gta6_disclaimer: str

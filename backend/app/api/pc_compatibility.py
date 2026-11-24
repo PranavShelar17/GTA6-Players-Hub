@@ -17,6 +17,7 @@ from app.schemas.pc_compatibility import (
     CompatibilityCheckResponse,
     GameSystemRequirementRead,
     GamingPCRecommendationsResponse,
+    HardwareCatalogResponse,
     PCProfileComparisonRequest,
     PCProfileComparisonResponse,
     PCHardwareProfileCreate,
@@ -126,6 +127,15 @@ async def compare_saved_profiles(
 
 
 # -----------------------------------------------------------------------------
+# Hardware Catalog & Search Autocomplete
+# -----------------------------------------------------------------------------
+@router.get("/catalog", response_model=HardwareCatalogResponse)
+async def get_hardware_catalog():
+    """Returns verified hardware catalog with Indian pricing and component specifications."""
+    return PCCompatibilityService.get_hardware_catalog()
+
+
+# -----------------------------------------------------------------------------
 # Top 3 Recommendations & Smart Comparison Endpoints
 # -----------------------------------------------------------------------------
 @router.get("/recommendations", response_model=GamingPCRecommendationsResponse)
@@ -133,9 +143,12 @@ async def get_recommended_gaming_pcs(
     budget: str = Query("ANY", description="Budget filter: ANY, BUDGET, MID, HIGH"),
     intended_use: str = Query("GTA_6_PREPARATION", description="Gaming use case"),
     currency: str = Query("USD", description="Currency: USD or INR"),
+    budget_inr: Optional[float] = Query(None, description="Custom target budget in Indian Rupees (INR ₹)"),
 ):
     """Returns top 3 curated gaming PC configurations (High-End, Mid-Range, Entry-Level) and personalized match."""
-    return PCCompatibilityService.get_top_3_recommendations(budget=budget, intended_use=intended_use, currency=currency)
+    return PCCompatibilityService.get_top_3_recommendations(
+        budget=budget, intended_use=intended_use, currency=currency, budget_inr=budget_inr
+    )
 
 
 @router.post("/recommendations/compare", response_model=UserVsRecommendationComparisonResponse)

@@ -437,3 +437,61 @@ async def test_user_pc_recommendation_comparison_endpoint(async_client: AsyncCli
     assert power["recommended_psu_with_headroom_w"] > power["estimated_user_power_w"]
     assert power["status"] in ("HEALTHY_HEADROOM", "MARGINAL_HEADROOM", "DEFICIT_WARNING")
     assert "Official GTA 6 PC system requirements have not been confirmed" in data["gta6_disclaimer"]
+
+    # Verify Upgrade Advisor plan is generated and capability labels are present
+    assert data["upgrade_advisor"] is not None
+    assert data["upgrade_advisor"]["recommended_strategy"] in (
+        "ONE_OR_TWO_COMPONENTS",
+        "PLATFORM_UPGRADE",
+        "KEEP_EXISTING",
+        "COMPLETE_NEW_BUILD",
+    )
+    for row in data["comparison_table"]:
+        assert row["capability_label"] in (
+            "Better hardware capability",
+            "Similar hardware capability",
+            "Lower hardware capability",
+            "Not compatible",
+            "Insufficient information",
+        )
+
+
+@pytest.mark.asyncio
+async def test_hardware_catalog_and_budget_scaling(async_client: AsyncClient):
+    """Verifies the hardware catalog endpoint and dynamic budget scaling in INR."""
+    # 1. Test Hardware Catalog
+    cat_res = await async_client.get("/api/v1/pc/catalog")
+    assert cat_res.status_code == 200
+    cat_data = cat_res.json()
+    assert len(cat_data["catalog"]) >= 10
+    cpus = [item for item in cat_data["catalog"] if item["category"] == "CPU"]
+    gpus = [item for item in cat_data["catalog"] if item["category"] == "GPU"]
+    assert len(cpus) >= 4
+    assert len(gpus) >= 4
+    assert any("PrimeABGB" in item["retailer"] for item in cat_data["catalog"])
+
+    # 2. Test Dynamic INR Budget Recommendations (e.g. ₹1,00,000 target)
+    rec_res = await async_client.get("/api/v1/pc/recommendations?budget_inr=100000&currency=INR")
+    assert rec_res.status_code == 200
+    rec_data = rec_res.json()
+    assert rec_data["user_budget_inr"] == 100000.0
+
+    high_tier = next(r for r in rec_data["recommendations"] if r["tier"] == "HIGH_END")
+    mid_tier = next(r for r in rec_data["recommendations"] if r["tier"] == "MID_RANGE")
+    low_tier = next(r for r in rec_data["recommendations"] if r["tier"] == "ENTRY_LEVEL")
+
+    # High tier is ~₹98,500 (within ₹95k-₹100k target)
+    assert 90000 <= high_tier["price_inr"] <= 100000
+    # Mid tier is ~₹84,800 (within ₹80k-₹90k target)
+    assert 75000 <= mid_tier["price_inr"] <= 90000
+    # Low tier is ~₹68,200 (within ₹65k-₹75k target)
+    assert 60000 <= low_tier["price_inr"] <= 75000
+
+    # Verify component price breakdowns and compatibility validation reports
+    for build in rec_data["recommendations"]:
+        assert build["gst_status"] == "GST Included (18% Retail Standard in India)"
+        assert len(build["component_price_breakdown"]) >= 8
+        assert build["compatibility_report"] is not None
+        assert build["compatibility_report"]["overall_compatibility"] == "FULLY_COMPATIBLE"
+        assert len(build["compatibility_report"]["checks"]) >= 5
+

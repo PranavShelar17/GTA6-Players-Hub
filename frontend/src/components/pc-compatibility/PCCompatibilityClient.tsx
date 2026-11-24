@@ -9,7 +9,6 @@ import {
   Sparkles, 
   CheckCircle2, 
   AlertTriangle,
-  Sliders,
   Scale
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -40,6 +39,8 @@ import { SmartPCScannerModal } from "./SmartPCScannerModal";
 import { PCProfileCompareModal } from "./PCProfileCompareModal";
 import { Top3RecommendationsSection } from "./Top3RecommendationsSection";
 import { PCRecommendationComparisonTable } from "./PCRecommendationComparisonTable";
+import { UpgradeAdvisorSection } from "./UpgradeAdvisorSection";
+import { UpgradeAdvisorPlan } from "@/lib/pcCompatibilityApi";
 
 interface PCCompatibilityClientProps {
   initialStatus: RequirementsStatusResponse;
@@ -59,6 +60,11 @@ export function PCCompatibilityClient({
   const [activeResult, setActiveResult] = useState<CompatibilityCheckResponse | null>(null);
   const [currentSpecs, setCurrentSpecs] = useState<PCHardwareProfileCreate | undefined>(undefined);
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined);
+  const [upgradePlan, setUpgradePlan] = useState<UpgradeAdvisorPlan | null>(null);
+
+  const handleUpgradeAdvisorPlan = useCallback((plan: UpgradeAdvisorPlan | null) => {
+    setUpgradePlan(plan);
+  }, []);
 
   // Modals
   const [isProfilesModalOpen, setIsProfilesModalOpen] = useState(false);
@@ -500,7 +506,11 @@ export function PCCompatibilityClient({
         currentSpecs={currentSpecs}
         activeProfileId={activeProfileId}
         token={token}
+        onUpgradeAdvisorPlan={handleUpgradeAdvisorPlan}
       />
+
+      {/* Intelligent Upgrade Advisor Section */}
+      <UpgradeAdvisorSection plan={upgradePlan} currency="INR" />
 
       {/* Modals */}
       <SmartPCScannerModal

@@ -4,7 +4,6 @@ import React from "react";
 import { 
   Cpu, 
   HardDrive, 
-  Monitor, 
   Star, 
   Trash2, 
   Upload, 
@@ -12,8 +11,7 @@ import {
   Layers,
   Zap,
   Sliders,
-  AlertTriangle,
-  CheckCircle2
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";

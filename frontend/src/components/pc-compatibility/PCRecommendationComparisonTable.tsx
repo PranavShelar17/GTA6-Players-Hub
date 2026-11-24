@@ -2,37 +2,42 @@
 
 import React, { useState, useEffect } from "react";
 import { 
-  Cpu, 
-  Zap, 
-  ShieldAlert, 
-  CheckCircle2, 
   AlertTriangle, 
-  TrendingUp, 
-  Info, 
   BatteryCharging, 
   Gauge, 
-  Layers 
+  Layers,
+  Filter,
+  Code
 } from "lucide-react";
 import { 
   UserVsRecommendationComparisonResponse, 
   PCHardwareProfileCreate, 
-  compareUserPCWithRecommendations 
+  compareUserPCWithRecommendations,
+  UpgradeAdvisorPlan
 } from "@/lib/pcCompatibilityApi";
 
 interface PCRecommendationComparisonTableProps {
   currentSpecs?: PCHardwareProfileCreate;
   activeProfileId?: string;
   token?: string;
+  onUpgradeAdvisorPlan?: (plan: UpgradeAdvisorPlan | null) => void;
 }
 
 export function PCRecommendationComparisonTable({
   currentSpecs,
   activeProfileId,
   token,
+  onUpgradeAdvisorPlan,
 }: PCRecommendationComparisonTableProps) {
   const [data, setData] = useState<UserVsRecommendationComparisonResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // View Mode: Simple (Beginner) vs Detailed Technical (Advanced)
+  const [viewMode, setViewMode] = useState<"SIMPLE" | "DETAILED">("SIMPLE");
+
+  // Comparison Target: ALL, TOP, MEDIUM, LOW
+  const [comparisonTarget, setComparisonTarget] = useState<"ALL" | "TOP" | "MEDIUM" | "LOW">("ALL");
 
   useEffect(() => {
     setIsLoading(true);
@@ -46,6 +51,9 @@ export function PCRecommendationComparisonTable({
     )
       .then((res) => {
         setData(res);
+        if (onUpgradeAdvisorPlan) {
+          onUpgradeAdvisorPlan(res.upgrade_advisor || null);
+        }
       })
       .catch((err) => {
         console.error("Failed to load user vs recommendation comparison:", err);
@@ -54,7 +62,7 @@ export function PCRecommendationComparisonTable({
       .finally(() => {
         setIsLoading(false);
       });
-  }, [currentSpecs, activeProfileId, token]);
+  }, [currentSpecs, activeProfileId, token, onUpgradeAdvisorPlan]);
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
@@ -92,55 +100,95 @@ export function PCRecommendationComparisonTable({
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "EXCEEDS_ALL":
-        return (
-          <span className="text-[10px] font-bold text-purple-400 bg-purple-950/40 border border-purple-500/40 px-2 py-0.5 rounded">
-            Exceeds All
-          </span>
-        );
-      case "MEETS_HIGH":
-        return (
-          <span className="text-[10px] font-bold text-indigo-400 bg-indigo-950/40 border border-indigo-500/40 px-2 py-0.5 rounded">
-            High-End Level
-          </span>
-        );
-      case "MEETS_MID":
-        return (
-          <span className="text-[10px] font-bold text-orange-400 bg-orange-950/40 border border-orange-500/40 px-2 py-0.5 rounded">
-            Mid-Range Level
-          </span>
-        );
-      case "MEETS_ENTRY":
-        return (
-          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 px-2 py-0.5 rounded">
-            Entry-Level
-          </span>
-        );
-      default:
-        return (
-          <span className="text-[10px] font-bold text-rose-400 bg-rose-950/40 border border-rose-500/40 px-2 py-0.5 rounded">
-            Below Entry
-          </span>
-        );
+  const getCapabilityBadge = (label?: string, fallbackStatus?: string) => {
+    const text = label || (
+      fallbackStatus === "EXCEEDS_ALL" || fallbackStatus === "MEETS_HIGH"
+        ? "Better hardware capability"
+        : fallbackStatus === "MEETS_MID"
+        ? "Similar hardware capability"
+        : fallbackStatus === "MEETS_ENTRY"
+        ? "Lower hardware capability"
+        : "Lower hardware capability"
+    );
+
+    if (text === "Better hardware capability") {
+      return (
+        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 px-2 py-0.5 rounded whitespace-nowrap">
+          {text}
+        </span>
+      );
     }
+    if (text === "Similar hardware capability") {
+      return (
+        <span className="text-[10px] font-bold text-sky-400 bg-sky-950/40 border border-sky-500/40 px-2 py-0.5 rounded whitespace-nowrap">
+          {text}
+        </span>
+      );
+    }
+    if (text === "Lower hardware capability") {
+      return (
+        <span className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-500/40 px-2 py-0.5 rounded whitespace-nowrap">
+          {text}
+        </span>
+      );
+    }
+    if (text === "Not compatible") {
+      return (
+        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/40 border border-rose-500/40 px-2 py-0.5 rounded whitespace-nowrap">
+          {text}
+        </span>
+      );
+    }
+    return (
+      <span className="text-[10px] font-medium text-slate-400 bg-slate-800/40 border border-slate-700/40 px-2 py-0.5 rounded whitespace-nowrap">
+        {text || "Insufficient information"}
+      </span>
+    );
   };
 
   return (
     <section id="user-comparison-table" className="space-y-5 pt-4">
       {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider">
-          <Layers className="w-4 h-4" />
-          <span>Intelligent Hardware Benchmarking</span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider">
+            <Layers className="w-4 h-4" />
+            <span>Intelligent Hardware Benchmarking</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            Your PC vs. Recommended Gaming Tiers
+          </h3>
+          <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-3xl">
+            Neutral, objective comparison matrix highlighting capability standings, architectural differences, and power headroom.
+          </p>
         </div>
-        <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-          Your PC vs. Recommended Gaming Tiers
-        </h3>
-        <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-3xl">
-          Side-by-side component breakdown analyzing where your current hardware sits relative to Entry-Level, Mid-Range, and High-End reference builds.
-        </p>
+
+        {/* View Mode Toggle (Simple vs Detailed Technical) */}
+        <div className="flex items-center gap-2 bg-[#131724] p-1 rounded-xl border border-[#232b3c] self-start md:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode("SIMPLE")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === "SIMPLE"
+                ? "bg-sky-500 text-white shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Simple View (Beginner)
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("DETAILED")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              viewMode === "DETAILED"
+                ? "bg-sky-500 text-white shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Code className="w-3.5 h-3.5" />
+            <span>Detailed Technical (Advanced)</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -155,6 +203,35 @@ export function PCRecommendationComparisonTable({
         </div>
       ) : data ? (
         <div className="space-y-5">
+          {/* Filter Bar: Comparison Targets */}
+          <div className="p-3 rounded-xl bg-[#141824] border border-[#21293c] flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-300 font-semibold">
+              <Filter className="w-4 h-4 text-sky-400" />
+              <span>Comparison Target:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: "ALL", label: "All 3 Builds Together" },
+                { id: "TOP", label: "Current PC vs TOP (High-End)" },
+                { id: "MEDIUM", label: "Current PC vs MEDIUM (Balanced)" },
+                { id: "LOW", label: "Current PC vs LOW (Entry-Level)" },
+              ].map((tgt) => (
+                <button
+                  key={tgt.id}
+                  type="button"
+                  onClick={() => setComparisonTarget(tgt.id as "ALL" | "TOP" | "MEDIUM" | "LOW")}
+                  className={`px-3 py-1 rounded-lg border font-bold transition-all ${
+                    comparisonTarget === tgt.id
+                      ? "bg-sky-500 text-white border-sky-400"
+                      : "bg-[#181d2c] text-slate-400 border-[#262f44] hover:text-slate-200"
+                  }`}
+                >
+                  {tgt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Overall Assessment Banner */}
           <div className="p-4 rounded-xl bg-[#141824] border border-[#232c40] space-y-2">
             <div className="text-xs font-bold uppercase tracking-wider text-white flex items-center justify-between">
@@ -210,26 +287,45 @@ export function PCRecommendationComparisonTable({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[#232b3e] bg-[#161a27] text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-                  <th className="p-3 w-28">Component</th>
+                  <th className="p-3 w-32">Component</th>
                   <th className="p-3 font-bold text-white bg-white/5">Your Current PC</th>
-                  <th className="p-3">Entry-Level Build</th>
-                  <th className="p-3">Mid-Range Build</th>
-                  <th className="p-3">High-End Build</th>
-                  <th className="p-3 w-28">Standing</th>
-                  <th className="p-3 w-24">Upgrade Priority</th>
+                  {(comparisonTarget === "ALL" || comparisonTarget === "LOW") && (
+                    <th className="p-3">Entry-Level Build (LOW)</th>
+                  )}
+                  {(comparisonTarget === "ALL" || comparisonTarget === "MEDIUM") && (
+                    <th className="p-3">Mid-Range Build (MEDIUM)</th>
+                  )}
+                  {(comparisonTarget === "ALL" || comparisonTarget === "TOP") && (
+                    <th className="p-3">High-End Build (TOP)</th>
+                  )}
+                  <th className="p-3 w-40">Capability Standing</th>
+                  <th className="p-3 w-28">Upgrade Priority</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {data.comparison_table.map((row, idx) => (
                   <tr key={idx} className="hover:bg-[#151926] transition-colors">
-                    <td className="p-3 font-bold text-slate-300">{row.component}</td>
+                    <td className="p-3 font-bold text-slate-300">
+                      <div>{row.component}</div>
+                      {viewMode === "DETAILED" && row.technical_details && (
+                        <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                          {Object.entries(row.technical_details).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-semibold text-white bg-white/[0.02]">
                       {row.user_value}
                     </td>
-                    <td className="p-3 text-slate-400">{row.entry_level_value}</td>
-                    <td className="p-3 text-slate-300">{row.mid_range_value}</td>
-                    <td className="p-3 text-slate-300">{row.high_end_value}</td>
-                    <td className="p-3">{getStatusBadge(row.compatibility_status)}</td>
+                    {(comparisonTarget === "ALL" || comparisonTarget === "LOW") && (
+                      <td className="p-3 text-slate-400">{row.entry_level_value}</td>
+                    )}
+                    {(comparisonTarget === "ALL" || comparisonTarget === "MEDIUM") && (
+                      <td className="p-3 text-slate-300">{row.mid_range_value}</td>
+                    )}
+                    {(comparisonTarget === "ALL" || comparisonTarget === "TOP") && (
+                      <td className="p-3 text-slate-300">{row.high_end_value}</td>
+                    )}
+                    <td className="p-3">{getCapabilityBadge(row.capability_label, row.compatibility_status)}</td>
                     <td className="p-3">{getPriorityBadge(row.upgrade_priority)}</td>
                   </tr>
                 ))}
@@ -247,7 +343,7 @@ export function PCRecommendationComparisonTable({
                   className="p-3 rounded-lg bg-[#141825] border border-white/5 space-y-1 text-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-white">{item.component} Upgrade Advice</span>
+                    <span className="font-bold text-white">{item.component} Upgrade Guidance</span>
                     {getPriorityBadge(item.upgrade_priority)}
                   </div>
                   <p className="text-slate-400 text-[11px] leading-relaxed">
