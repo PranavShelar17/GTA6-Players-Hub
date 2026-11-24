@@ -11,6 +11,8 @@ from app.core.logging import logger
 from app.core.security import CurrentUser, get_current_user
 from app.models.user import PlayerActivity, PlayerPreferences, PlayerProfile
 from app.schemas.envelope import ApiResponse
+from app.schemas.search import UnifiedSavedContentResponse
+from app.services import saved_content_service
 from app.schemas.user import (
     PlayerActivityRead,
     PlayerPreferencesRead,
@@ -442,4 +444,51 @@ async def delete_my_account(
     return ApiResponse(
         success=True,
         data={"message": "Player account and associated data successfully removed."}
+    )
+
+
+@router.get("/me/saved", response_model=ApiResponse[UnifiedSavedContentResponse])
+async def get_my_saved_content(
+    type: str = Query("ALL", description="Filter by saved type: ALL, NEWS, DEALS, EVENTS, COMMUNITY"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieves unified saved content across news bookmarks, wishlist, saved events, and community bookmarks."""
+    saved_data = await saved_content_service.get_player_saved_content(
+        session=db,
+        user_id=user.id,
+        content_type=type,
+        page=page,
+        page_size=page_size,
+    )
+    return ApiResponse(
+        success=True,
+        data=saved_data,
+    )
+
+
+@router.delete("/me/saved/{saved_type}/{item_id}", response_model=ApiResponse[dict])
+async def remove_my_saved_item(
+    saved_type: str,
+    item_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Removes a specific saved item (bookmark/wishlist/saved event) by its record ID."""
+    removed = await saved_content_service.remove_saved_item(
+        session=db,
+        user_id=user.id,
+        saved_type=saved_type,
+        item_id=item_id,
+    )
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Saved item not found or does not belong to you.",
+        )
+    return ApiResponse(
+        success=True,
+        data={"removed": True, "saved_type": saved_type, "item_id": item_id},
     )

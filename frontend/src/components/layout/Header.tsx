@@ -20,12 +20,14 @@ import {
   LogOut,
   ChevronDown,
   Calendar,
-  Bell
+  Bell,
+  Bookmark
 } from "lucide-react";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { NotificationBadge } from "@/components/notifications/NotificationBadge";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -227,6 +229,15 @@ export function Header() {
                       </Link>
 
                       <Link
+                        href="/saved"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
+                      >
+                        <Bookmark className="w-4 h-4 text-amber-400" />
+                        Saved Content
+                      </Link>
+
+                      <Link
                         href="/settings"
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-[#181d2c] rounded-lg transition-colors"
@@ -386,6 +397,9 @@ export function Header() {
           </div>
         </div>
       )}
+
+      {/* Global Search Command Palette Overlay */}
+      <SearchOverlay />
     </header>
   );
 }

@@ -224,3 +224,216 @@ async def test_hardware_bottlenecks_and_guidance(async_client: AsyncClient):
     assert "RAM" in suggested_components
     assert "GPU" in suggested_components
     assert "Operating System" in suggested_components
+
+
+@pytest.mark.asyncio
+async def test_pc_profile_extended_fields_and_set_primary(
+    async_client: AsyncClient, auth_headers_user1
+):
+    """Verifies extended hardware fields (PSU, motherboard, cooling, RAM speed) and set-primary workflow."""
+    # 1. Create Profile 1 (Old PC)
+    old_pc_payload = {
+        "profile_name": "Old Gaming Rig (2020)",
+        "cpu_manufacturer": "Intel",
+        "cpu_model": "Core i5-10400F",
+        "cpu_cores": 6,
+        "cpu_threads": 12,
+        "gpu_manufacturer": "NVIDIA",
+        "gpu_model": "GeForce GTX 1660 Super",
+        "gpu_vram_gb": 6.0,
+        "gpu_type": "DEDICATED",
+        "ram_gb": 16,
+        "ram_type": "DDR4",
+        "ram_speed_mhz": 3200,
+        "motherboard_model": "ASUS Prime B460M-A",
+        "storage_type": "SATA_SSD",
+        "storage_capacity_gb": 500,
+        "storage_free_gb": 120,
+        "psu_wattage": 500,
+        "psu_model": "EVGA 500 W1",
+        "cooling_solution": "Stock Air Cooler",
+        "form_factor": "DESKTOP",
+        "is_primary": True,
+    }
+    res1 = await async_client.post("/api/v1/pc/profiles", json=old_pc_payload, headers=auth_headers_user1)
+    assert res1.status_code == 201
+    p1 = res1.json()
+    assert p1["ram_speed_mhz"] == 3200
+    assert p1["motherboard_model"] == "ASUS Prime B460M-A"
+    assert p1["psu_wattage"] == 500
+    assert p1["is_primary"] is True
+
+    # 2. Create Profile 2 (New PC, marked as primary)
+    new_pc_payload = {
+        "profile_name": "Current Beast (2026)",
+        "cpu_manufacturer": "AMD",
+        "cpu_model": "Ryzen 7 7800X3D",
+        "cpu_cores": 8,
+        "cpu_threads": 16,
+        "gpu_manufacturer": "NVIDIA",
+        "gpu_model": "GeForce RTX 4070 Super",
+        "gpu_vram_gb": 12.0,
+        "gpu_type": "DEDICATED",
+        "ram_gb": 32,
+        "ram_type": "DDR5",
+        "ram_speed_mhz": 6000,
+        "motherboard_model": "MSI B650 Tomahawk Wi-Fi",
+        "storage_type": "NVME_SSD",
+        "storage_capacity_gb": 2000,
+        "storage_free_gb": 1200,
+        "psu_wattage": 750,
+        "psu_model": "Corsair RM750e",
+        "cooling_solution": "Thermalright Peerless Assassin 120",
+        "form_factor": "DESKTOP",
+        "is_primary": True,
+    }
+    res2 = await async_client.post("/api/v1/pc/profiles", json=new_pc_payload, headers=auth_headers_user1)
+    assert res2.status_code == 201
+    p2 = res2.json()
+    assert p2["is_primary"] is True
+
+    # Verify Profile 1 was automatically demoted from primary
+    get1 = await async_client.get(f"/api/v1/pc/profiles/{p1['id']}", headers=auth_headers_user1)
+    assert get1.json()["is_primary"] is False
+
+    # 3. Use set-primary endpoint to switch primary back to Profile 1
+    switch_res = await async_client.post(f"/api/v1/pc/profiles/{p1['id']}/set-primary", headers=auth_headers_user1)
+    assert switch_res.status_code == 200
+    assert switch_res.json()["is_primary"] is True
+
+    # Confirm Profile 2 is now demoted
+    get2 = await async_client.get(f"/api/v1/pc/profiles/{p2['id']}", headers=auth_headers_user1)
+    assert get2.json()["is_primary"] is False
+
+
+@pytest.mark.asyncio
+async def test_pc_profile_comparison_endpoint(
+    async_client: AsyncClient, auth_headers_user1, auth_headers_user2
+):
+    """Verifies side-by-side comparison between old and new saved PC profiles."""
+    # 1. Create two profiles for User 1
+    p1_data = {
+        "profile_name": "Rig v1",
+        "cpu_manufacturer": "Intel",
+        "cpu_model": "Core i5-10400F",
+        "gpu_manufacturer": "NVIDIA",
+        "gpu_model": "GeForce GTX 1660 Super",
+        "gpu_vram_gb": 6.0,
+        "ram_gb": 16,
+        "storage_type": "SATA_SSD",
+        "storage_free_gb": 100,
+    }
+    p2_data = {
+        "profile_name": "Rig v2",
+        "cpu_manufacturer": "AMD",
+        "cpu_model": "Ryzen 7 7800X3D",
+        "gpu_manufacturer": "NVIDIA",
+        "gpu_model": "GeForce RTX 4070 Super",
+        "gpu_vram_gb": 12.0,
+        "ram_gb": 32,
+        "storage_type": "NVME_SSD",
+        "storage_free_gb": 800,
+    }
+    r1 = await async_client.post("/api/v1/pc/profiles", json=p1_data, headers=auth_headers_user1)
+    r2 = await async_client.post("/api/v1/pc/profiles", json=p2_data, headers=auth_headers_user1)
+    id1, id2 = r1.json()["id"], r2.json()["id"]
+
+    # 2. Compare profiles
+    cmp_res = await async_client.post(
+        "/api/v1/pc/profiles/compare",
+        json={"profile_ids": [id1, id2]},
+        headers=auth_headers_user1,
+    )
+    assert cmp_res.status_code == 200
+    data = cmp_res.json()
+    assert len(data["profiles"]) == 2
+    assert len(data["differences"]) >= 5
+    assert "Rig v1" in data["upgrade_summary"]
+    assert "Rig v2" in data["upgrade_summary"]
+
+    # Check VRAM upgrade detected
+    vram_diff = next(d for d in data["differences"] if d["component"] == "Video Memory (VRAM)")
+    assert vram_diff["delta_type"] == "UPGRADE"
+    assert "6.0" in vram_diff["profile_1_value"]
+    assert "12.0" in vram_diff["profile_2_value"]
+
+    # 3. Privacy check: User 2 cannot compare User 1's profiles
+    unauth_cmp = await async_client.post(
+        "/api/v1/pc/profiles/compare",
+        json={"profile_ids": [id1, id2]},
+        headers=auth_headers_user2,
+    )
+    assert unauth_cmp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_top_3_recommendations_endpoint(async_client: AsyncClient):
+    """Verifies top 3 curated gaming PC configurations and personalized matching."""
+    # 1. Fetch default recommendations
+    res = await async_client.get("/api/v1/pc/recommendations")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["recommendations"]) == 3
+
+    tiers = [r["tier"] for r in data["recommendations"]]
+    assert "HIGH_END" in tiers
+    assert "MID_RANGE" in tiers
+    assert "ENTRY_LEVEL" in tiers
+
+    # Check pricing and truth verification disclaimer
+    high = next(r for r in data["recommendations"] if r["tier"] == "HIGH_END")
+    assert high["price_usd"] == 1999.0
+    assert high["price_inr"] == 185000.0
+    assert high["price_status"] == "VERIFIED_ESTIMATE"
+    assert "Official GTA 6 PC system requirements have not been confirmed" in data["gta6_disclaimer"]
+
+    # 2. Test personalized filter for Budget tier
+    budget_res = await async_client.get("/api/v1/pc/recommendations?budget=BUDGET&intended_use=COMPETITIVE")
+    assert budget_res.status_code == 200
+    match = budget_res.json()["personalized_match"]
+    assert match is not None
+    assert match["recommended_tier"] == "ENTRY_LEVEL"
+    assert "Recommended for you" in match["match_headline"]
+
+
+@pytest.mark.asyncio
+async def test_user_pc_recommendation_comparison_endpoint(async_client: AsyncClient):
+    """Verifies user PC vs top 3 recommendation comparison and power headroom analysis."""
+    custom_rig = {
+        "profile_name": "Test Rig",
+        "cpu_manufacturer": "Intel",
+        "cpu_model": "Core i5-10400F",
+        "cpu_cores": 6,
+        "cpu_threads": 12,
+        "gpu_manufacturer": "NVIDIA",
+        "gpu_model": "GeForce GTX 1660 Super",
+        "gpu_vram_gb": 6.0,
+        "gpu_type": "DEDICATED",
+        "ram_gb": 16,
+        "ram_type": "DDR4",
+        "storage_type": "HDD",
+        "storage_capacity_gb": 1000,
+        "storage_free_gb": 300,
+        "psu_wattage": 450,
+    }
+    res = await async_client.post("/api/v1/pc/recommendations/compare", json=custom_rig)
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["user_profile_name"] == "Test Rig"
+    assert len(data["comparison_table"]) >= 7
+
+    # Check that 6GB VRAM and HDD storage are flagged with high/critical priority
+    vram_row = next(r for r in data["comparison_table"] if r["component"] == "Video Memory (VRAM)")
+    assert vram_row["compatibility_status"] == "BELOW_ENTRY"
+    assert vram_row["upgrade_priority"] == "CRITICAL"
+
+    storage_row = next(r for r in data["comparison_table"] if r["component"] == "Storage Interface")
+    assert storage_row["upgrade_priority"] == "CRITICAL"
+
+    # Check power headroom analysis
+    power = data["power_analysis"]
+    assert power["estimated_user_power_w"] > 0
+    assert power["recommended_psu_with_headroom_w"] > power["estimated_user_power_w"]
+    assert power["status"] in ("HEALTHY_HEADROOM", "MARGINAL_HEADROOM", "DEFICIT_WARNING")
+    assert "Official GTA 6 PC system requirements have not been confirmed" in data["gta6_disclaimer"]

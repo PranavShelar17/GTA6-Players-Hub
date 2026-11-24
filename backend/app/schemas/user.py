@@ -104,6 +104,9 @@ class PlayerPreferencesBase(BaseModel):
     news_notifications: bool = True
     price_alert_notifications: bool = True
     event_notifications: bool = True
+    preferred_categories: Optional[str] = Field(None, description="Comma-separated or JSON list of preferred categories")
+    theme: str = Field(default="dark", max_length=20)
+    content_density: str = Field(default="comfortable", max_length=20)
 
 
 class PlayerPreferencesUpdate(BaseModel):
@@ -118,6 +121,9 @@ class PlayerPreferencesUpdate(BaseModel):
     news_notifications: Optional[bool] = None
     price_alert_notifications: Optional[bool] = None
     event_notifications: Optional[bool] = None
+    preferred_categories: Optional[str] = None
+    theme: Optional[str] = None
+    content_density: Optional[str] = None
 
 
 class PlayerPreferencesRead(PlayerPreferencesBase):

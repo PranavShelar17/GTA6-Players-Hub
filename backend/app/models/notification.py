@@ -71,6 +71,9 @@ class NotificationDelivery(Base):
     notification_id = Column(GUID(), ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False, index=True)
     channel = Column(String(32), nullable=False)  # IN_APP, EMAIL, PUSH
     status = Column(String(32), nullable=False, default="SENT")  # PENDING, SENT, FAILED, DELIVERED
+    provider_reference = Column(String(255), nullable=True)
+    retry_count = Column(Integer, nullable=False, default=0)
+    attempted_at = Column(DateTime(timezone=True), nullable=True)
     error_message = Column(Text, nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

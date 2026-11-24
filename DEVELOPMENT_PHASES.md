@@ -154,19 +154,71 @@
 ---
 
 ### Phase 10 – Automation and Background Services
-- **Objective**: Configure Celery and Celery Beat worker queues backed by Redis; implement scheduled news harvesters, automated price tracking synchronizers, deal expiration checks, retry policies, and structured error alerting.
-- **Status**: `NOT STARTED`
-- **Dependencies**: Phase 4, 5, 6.
+- **Objective**: Configure Celery and Celery Beat worker queues backed by Redis; implement scheduled news harvesters, automated price tracking synchronizers, event reminders, multi-channel notification dispatchers (In-App, Email, Push), AI background maintenance, retry policies, and structured audit logging.
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 11)`
+- **Dependencies**: Phase 4, 5, 6, 9.
+- **Key Deliverables**:
+  - Relational models: `automation_job_logs`, `data_source_status`, `data_ingestion_logs`, and updated `notification_deliveries`.
+  - Alembic migration `0008_phase_10_automation_background_services.py` and Supabase RLS schema (`backend/supabase_automation_schema.sql`).
+  - Distributed Celery 5.7+ application and Celery Beat scheduler with 6 partitioned queues (`news_queue`, `price_queue`, `event_queue`, `notification_queue`, `ai_queue`, `maintenance_queue`).
+  - Automated news ingestion preserving official verification tags and deduplicating by canonical URL.
+  - Automated store price polling across 5 regional currencies with genuine discount math, price drop detection, and target price alert triggering.
+  - Timezone-aware event calendar sync and automated event reminder dispatch.
+  - Multi-channel notification delivery (In-App, HTML/Plain Email templates, Web Push VAPID).
+  - Protected REST API under `/api/v1/automation/*` for health, workers, scheduler, source audits, history, and manual execution triggers.
+  - 97/97 passing backend tests (100% pass rate); 25/25 Next.js compiled production routes with 0 errors.
+  - Phase 10 Completion Report and complete 8-document suite.
 
 ---
 
 ### Phase 11 – Global Search and Integration
 - **Objective**: Implement unified multi-entity global search (`Cmd+K` palette); build unified Player Dashboard aggregating bookmarks, wishlist, saved compatibility reports, and notifications; finalize cross-page personalization.
-- **Status**: `NOT STARTED`
-- **Dependencies**: All functional modules (Phases 3–9).
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 12)`
+- **Dependencies**: All functional modules (Phases 3–10).
+- **Key Deliverables**:
+  - Relational models: `search_index` and `user_search_history`.
+  - Alembic migration `0009_phase_11_global_search_personalisation.py` and Supabase RLS schema (`backend/supabase_search_schema.sql`).
+  - Extended `player_preferences` with `preferred_categories`, `theme`, and `content_density`.
+  - Enterprise search engine (`SearchService`) supporting multi-token queries, rank scoring, category filters, and suggestions across News, Deals, Events, Community, and Guides.
+  - Privacy safeguards strictly isolating saved PC hardware profiles and private AI chats.
+  - Unified saved content engine (`SavedContentService`) aggregating bookmarks, wishlists, and events without data duplication.
+  - Celery background synchronization task (`rebuild_search_index_task`) on `maintenance_queue`.
+  - Full REST API under `/api/v1/search/*` and `/api/v1/users/me/saved/*`.
+  - Next.js Command Palette modal (`SearchOverlay`) with `Ctrl+K` / `Cmd+K` / `/` shortcuts and debounced autocomplete suggestions.
+  - Dedicated Global Search page (`/search`) with dynamic filter pills, sorting controls, and pagination.
+  - Dedicated Unified Saved Content page (`/saved`) with category tabs and optimistic item removal.
+  - Updated Settings page (`/settings`) with content topic checkboxes, display theme, and content density controls.
+  - Updated Header (`Header.tsx`) and Dashboard (`/dashboard`) with cross-module quick access.
+  - 104/104 passing backend tests (100% pass rate); 27/27 compiled Next.js routes with 0 errors.
+  - Phase 11 Completion Report and complete 7-document technical suite.
 
 ---
 
 ### Phase 12 – Comprehensive Testing and Security Audit
-- **Objective**: Execute end-to-end testing suite (Vitest, pytest, Playwright); perform OWASP security scanning; audit authentication boundaries, SQL injection protections, and rate limiters; test mobile responsiveness across 6 screen sizes; execute backup and recovery drills.
-- **Status**: `NOT STARTED`
+- **Objective**: Execute end-to-end testing suite; perform OWASP Top 10 security audit; audit authentication boundaries, SQL injection protections, IDOR checks, and sliding-window rate limiters; test mobile responsiveness across 8 viewport sizes; verify WCAG 2.2 AA accessibility; configure GitHub Actions CI/CD; verify zero regressions across all Phases 1–11.
+- **Status**: `COMPLETED (Awaiting Approval to start Phase 13)`
+- **Dependencies**: All functional modules (Phases 1–11).
+- **Key Deliverables**:
+  - `backend/app/middleware/security.py`: `SecurityHeadersMiddleware` and `RateLimitMiddleware`.
+  - `backend/app/services/media_service.py`: `validate_image_magic_bytes` binary signature inspection.
+  - `frontend/next.config.ts`: OWASP security headers block.
+  - `.github/workflows/ci.yml`: GitHub Actions automated CI/CD pipeline for backend tests and frontend builds.
+  - 112/112 passing backend unit, functional, and security tests (100% pass rate).
+  - 27/27 compiled Next.js production routes with zero TypeScript or ESLint errors.
+  - Complete 10-document Phase 12 Quality & Security suite:
+    - `PHASE_12_INITIAL_AUDIT.md`
+    - `PHASE_12_TESTING_STRATEGY.md`
+    - `PHASE_12_FUNCTIONAL_TEST_REPORT.md`
+    - `PHASE_12_SECURITY_AUDIT.md`
+    - `PHASE_12_PERFORMANCE_REPORT.md`
+    - `PHASE_12_ACCESSIBILITY_REPORT.md`
+    - `PHASE_12_BUG_REGISTER.md`
+    - `PHASE_12_REGRESSION_REPORT.md`
+    - `PHASE_12_DEPLOYMENT_READINESS.md`
+    - `PHASE_12_COMPLETION_REPORT.md`
+
+---
+
+### Phase 13 – Deployment, Launch Readiness and Documentation Finalisation
+- **Objective**: Finalize production containerization, configure production SSL/TLS and CDN edge caching, verify disaster recovery & database migration procedures, prepare release documentation and user guides.
+- **Status**: `NOT STARTED (Awaiting explicit user approval before commencement)`

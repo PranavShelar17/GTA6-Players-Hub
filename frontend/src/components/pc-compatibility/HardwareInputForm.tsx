@@ -7,7 +7,12 @@ import {
   Monitor, 
   RotateCcw, 
   Zap, 
-  Info
+  Info,
+  BatteryCharging,
+  Wind,
+  Sparkles,
+  Layers,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -19,6 +24,7 @@ interface HardwareInputFormProps {
   onSubmit: (specs: PCHardwareProfileCreate, saveProfile: boolean, profileName: string) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
+  onOpenScanner?: () => void;
 }
 
 const DEFAULT_SPECS: PCHardwareProfileCreate = {
@@ -33,9 +39,17 @@ const DEFAULT_SPECS: PCHardwareProfileCreate = {
   gpu_type: "DEDICATED",
   ram_gb: 32,
   ram_type: "DDR5",
+  ram_speed_mhz: 6000,
+  motherboard_model: "MSI B650 Gaming Plus WiFi",
   storage_type: "NVME_SSD",
   storage_capacity_gb: 2000,
   storage_free_gb: 850,
+  psu_wattage: 750,
+  psu_model: "Corsair RM750e 80+ Gold",
+  cooling_solution: "Thermalright Peerless Assassin 120 SE",
+  form_factor: "DESKTOP",
+  is_incomplete: false,
+  notes: null,
   operating_system: "Windows 11",
   os_architecture: "64-bit",
   directx_version: "DirectX 12 Ultimate",
@@ -46,7 +60,7 @@ const DEFAULT_SPECS: PCHardwareProfileCreate = {
 
 const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }> = {
   enthusiast: {
-    label: "Enthusiast 4K (Ryzen 7 7800X3D / RTX 4080 / 32GB DDR5 / NVMe)",
+    label: "Enthusiast 4K (Ryzen 7 7800X3D / RTX 4080 / 32GB DDR5 / 850W)",
     specs: {
       profile_name: "Enthusiast 4K Rig",
       cpu_manufacturer: "AMD",
@@ -59,9 +73,17 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
       gpu_type: "DEDICATED",
       ram_gb: 32,
       ram_type: "DDR5",
+      ram_speed_mhz: 6000,
+      motherboard_model: "ASUS ROG Strix B650E-F",
       storage_type: "NVME_SSD",
       storage_capacity_gb: 2000,
       storage_free_gb: 1200,
+      psu_wattage: 850,
+      psu_model: "Corsair RM850x 80+ Gold",
+      cooling_solution: "Liquid 360mm AIO Cooler",
+      form_factor: "DESKTOP",
+      is_incomplete: false,
+      notes: "High-end 4K ready configuration",
       operating_system: "Windows 11",
       os_architecture: "64-bit",
       directx_version: "DirectX 12 Ultimate",
@@ -71,7 +93,7 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
     },
   },
   mainstream: {
-    label: "Mainstream 1440p (i5-13600K / RTX 4070 / 32GB DDR5 / NVMe)",
+    label: "Mainstream 1440p (i5-13600K / RTX 4070 / 32GB DDR5 / 750W)",
     specs: {
       profile_name: "Mainstream 1440p Rig",
       cpu_manufacturer: "Intel",
@@ -84,9 +106,17 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
       gpu_type: "DEDICATED",
       ram_gb: 32,
       ram_type: "DDR5",
+      ram_speed_mhz: 5600,
+      motherboard_model: "Gigabyte B760 Gaming X AX",
       storage_type: "NVME_SSD",
       storage_capacity_gb: 1000,
       storage_free_gb: 450,
+      psu_wattage: 750,
+      psu_model: "MSI MAG A750GL 80+ Gold",
+      cooling_solution: "Dual Tower Air Cooler",
+      form_factor: "DESKTOP",
+      is_incomplete: false,
+      notes: "Balanced 1440p gaming setup",
       operating_system: "Windows 11",
       os_architecture: "64-bit",
       directx_version: "DirectX 12 Ultimate",
@@ -96,7 +126,7 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
     },
   },
   budget: {
-    label: "Budget 1080p (Ryzen 5 5600 / RX 6600 / 16GB DDR4 / SATA SSD)",
+    label: "Budget 1080p (Ryzen 5 5600 / RX 6600 / 16GB DDR4 / 600W)",
     specs: {
       profile_name: "Budget 1080p Rig",
       cpu_manufacturer: "AMD",
@@ -109,9 +139,17 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
       gpu_type: "DEDICATED",
       ram_gb: 16,
       ram_type: "DDR4",
+      ram_speed_mhz: 3200,
+      motherboard_model: "ASRock B550M Pro4",
       storage_type: "SATA_SSD",
       storage_capacity_gb: 1000,
       storage_free_gb: 320,
+      psu_wattage: 600,
+      psu_model: "EVGA 600 BR 80+ Bronze",
+      cooling_solution: "Stock Air Cooler",
+      form_factor: "DESKTOP",
+      is_incomplete: false,
+      notes: "Budget 1080p entry gaming PC",
       operating_system: "Windows 10",
       os_architecture: "64-bit",
       directx_version: "DirectX 12",
@@ -134,9 +172,17 @@ const PRESETS: Record<string, { label: string; specs: PCHardwareProfileCreate }>
       gpu_type: "DEDICATED",
       ram_gb: 8,
       ram_type: "DDR3",
+      ram_speed_mhz: 1600,
+      motherboard_model: "ASUS H110M-A",
       storage_type: "HDD",
       storage_capacity_gb: 1000,
       storage_free_gb: 140,
+      psu_wattage: 500,
+      psu_model: "OEM 500W Standard",
+      cooling_solution: "Basic Stock Fan",
+      form_factor: "DESKTOP",
+      is_incomplete: false,
+      notes: "Older gaming configuration",
       operating_system: "Windows 10",
       os_architecture: "64-bit",
       directx_version: "DirectX 12",
@@ -152,6 +198,7 @@ export function HardwareInputForm({
   onSubmit,
   isLoading,
   isAuthenticated,
+  onOpenScanner,
 }: HardwareInputFormProps) {
   const [specs, setSpecs] = useState<PCHardwareProfileCreate>(initialSpecs || DEFAULT_SPECS);
   const [saveProfile, setSaveProfile] = useState<boolean>(isAuthenticated);
@@ -217,24 +264,38 @@ export function HardwareInputForm({
               <span>Enter PC Hardware Specifications</span>
             </CardTitle>
             <CardDescription className="text-xs text-slate-400 mt-1">
-              Provide your system configuration manually or load a standard hardware preset.
+              Provide your system configuration manually, auto-scan your PC, or load a preset template.
             </CardDescription>
           </div>
 
-          {/* Preset Hardware Loader */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Load Preset:</span>
-            <select
-              aria-label="Load Preset Hardware Rig"
-              onChange={(e) => handleLoadPreset(e.target.value)}
-              defaultValue=""
-              className="text-xs bg-[#171b28] border border-[#262e40] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-orange-500 cursor-pointer"
-            >
-              <option value="" disabled>Select Rig Template...</option>
-              {Object.entries(PRESETS).map(([key, item]) => (
-                <option key={key} value={key}>{item.label}</option>
-              ))}
-            </select>
+          {/* Quick Actions: Auto-Scan & Preset Loader */}
+          <div className="flex flex-wrap items-center gap-2">
+            {onOpenScanner && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenScanner}
+                className="text-xs gap-1.5 border-orange-500/40 text-orange-300 hover:bg-orange-500/10 font-bold"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                <span>Auto-Scan PC</span>
+              </Button>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              <select
+                aria-label="Load Preset Hardware Rig"
+                onChange={(e) => handleLoadPreset(e.target.value)}
+                defaultValue=""
+                className="text-xs bg-[#171b28] border border-[#262e40] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-orange-500 cursor-pointer"
+              >
+                <option value="" disabled>Load Rig Template...</option>
+                {Object.entries(PRESETS).map(([key, item]) => (
+                  <option key={key} value={key}>{item.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -246,6 +307,37 @@ export function HardwareInputForm({
               {validationError}
             </div>
           )}
+
+          {/* Form Factor & Rig Name */}
+          <div className="p-3.5 rounded-xl bg-[#141824] border border-[#21293c] grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                Rig Configuration Name
+              </label>
+              <Input
+                value={specs.profile_name || profileName}
+                onChange={(e) => {
+                  handleFieldChange("profile_name", e.target.value);
+                  setProfileName(e.target.value);
+                }}
+                placeholder="e.g. My Battle Station / Old Rig"
+                className="text-xs h-9"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                System Form Factor
+              </label>
+              <select
+                value={specs.form_factor || "DESKTOP"}
+                onChange={(e) => handleFieldChange("form_factor", e.target.value as "DESKTOP" | "LAPTOP")}
+                className="w-full text-xs rounded-lg bg-[#181d2c] border border-[#262e42] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
+              >
+                <option value="DESKTOP">Desktop Gaming Rig</option>
+                <option value="LAPTOP">Gaming Laptop</option>
+              </select>
+            </div>
+          </div>
 
           {/* Section 1: Processor (CPU) */}
           <div className="space-y-3 pt-1 border-t border-[#1e2330]">
@@ -264,7 +356,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.cpu_manufacturer}
                   onChange={(e) => handleFieldChange("cpu_manufacturer", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="Intel">Intel</option>
                   <option value="AMD">AMD</option>
@@ -334,7 +426,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.gpu_manufacturer}
                   onChange={(e) => handleFieldChange("gpu_manufacturer", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="NVIDIA">NVIDIA</option>
                   <option value="AMD">AMD</option>
@@ -373,8 +465,8 @@ export function HardwareInputForm({
                     className="text-xs h-9 w-28"
                     required
                   />
-                  <div className="flex gap-1">
-                    {[6, 8, 12, 16].map((v) => (
+                  <div className="flex gap-1 flex-wrap">
+                    {[6, 8, 12, 16, 24].map((v) => (
                       <button
                         type="button"
                         key={v}
@@ -399,7 +491,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.gpu_type}
                   onChange={(e) => handleFieldChange("gpu_type", e.target.value as "DEDICATED" | "INTEGRATED")}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="DEDICATED">Dedicated Graphics Card</option>
                   <option value="INTEGRATED">Integrated CPU Graphics</option>
@@ -408,56 +500,39 @@ export function HardwareInputForm({
             </div>
           </div>
 
-          {/* Section 3: Memory & Storage */}
+          {/* Section 3: Memory, Motherboard & Storage */}
           <div className="space-y-3 pt-2 border-t border-[#1e2330]">
             <h3 className="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
-              <HardDrive className="w-4 h-4" />
-              <span>3. System Memory & Storage</span>
+              <Layers className="w-4 h-4" />
+              <span>3. Memory, Motherboard & Storage</span>
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* RAM */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* RAM GB */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Total System RAM (GB) *
+                  Total RAM (GB) *
                 </label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={2}
-                    max={256}
-                    value={specs.ram_gb}
-                    onChange={(e) => handleFieldChange("ram_gb", parseInt(e.target.value, 10) || 0)}
-                    className="text-xs h-9 w-24"
-                    required
-                  />
-                  <div className="flex gap-1">
-                    {[8, 16, 32, 64].map((amt) => (
-                      <button
-                        type="button"
-                        key={amt}
-                        onClick={() => handleFieldChange("ram_gb", amt)}
-                        className={`text-[11px] px-2 py-1 rounded border transition-colors ${
-                          specs.ram_gb === amt
-                            ? "bg-orange-500/20 border-orange-500/50 text-orange-300 font-bold"
-                            : "bg-[#181d2a] border-[#252c3c] text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        {amt}GB
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <Input
+                  type="number"
+                  min={2}
+                  max={256}
+                  value={specs.ram_gb}
+                  onChange={(e) => handleFieldChange("ram_gb", parseInt(e.target.value, 10) || 0)}
+                  className="text-xs h-9"
+                  required
+                />
               </div>
 
+              {/* RAM Generation */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   RAM Generation
                 </label>
                 <select
-                  value={specs.ram_type || "DDR4"}
+                  value={specs.ram_type || "DDR5"}
                   onChange={(e) => handleFieldChange("ram_type", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="DDR5">DDR5</option>
                   <option value="DDR4">DDR4</option>
@@ -465,8 +540,39 @@ export function HardwareInputForm({
                   <option value="Other">Other / Unknown</option>
                 </select>
               </div>
+
+              {/* RAM Speed */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  RAM Speed (MHz)
+                </label>
+                <Input
+                  type="number"
+                  step={100}
+                  min={800}
+                  max={9000}
+                  value={specs.ram_speed_mhz || ""}
+                  onChange={(e) => handleFieldChange("ram_speed_mhz", e.target.value ? parseInt(e.target.value, 10) : null)}
+                  placeholder="e.g. 6000 or 3200"
+                  className="text-xs h-9"
+                />
+              </div>
             </div>
 
+            {/* Motherboard Model */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                Motherboard Model (Optional)
+              </label>
+              <Input
+                value={specs.motherboard_model || ""}
+                onChange={(e) => handleFieldChange("motherboard_model", e.target.value || null)}
+                placeholder="e.g. MSI B650 Gaming Plus WiFi or ASUS Prime Z790-P"
+                className="text-xs h-9"
+              />
+            </div>
+
+            {/* Storage Drive Type and Capacity */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -475,7 +581,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.storage_type}
                   onChange={(e) => handleFieldChange("storage_type", e.target.value as "NVME_SSD" | "SATA_SSD" | "HDD")}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="NVME_SSD">NVMe PCIe M.2 SSD</option>
                   <option value="SATA_SSD">2.5&quot; SATA SSD</option>
@@ -514,11 +620,61 @@ export function HardwareInputForm({
             </div>
           </div>
 
-          {/* Section 4: OS & Display Environment */}
+          {/* Section 4: Power Supply (PSU) & Thermal Cooling */}
+          <div className="space-y-3 pt-2 border-t border-[#1e2330]">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
+              <BatteryCharging className="w-4 h-4" />
+              <span>4. Power Supply (PSU) & Cooling Solution</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  PSU Wattage (Watts)
+                </label>
+                <Input
+                  type="number"
+                  min={200}
+                  max={2000}
+                  step={50}
+                  value={specs.psu_wattage || ""}
+                  onChange={(e) => handleFieldChange("psu_wattage", e.target.value ? parseInt(e.target.value, 10) : null)}
+                  placeholder="e.g. 750 or 850"
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  PSU Model & Rating
+                </label>
+                <Input
+                  value={specs.psu_model || ""}
+                  onChange={(e) => handleFieldChange("psu_model", e.target.value || null)}
+                  placeholder="e.g. Corsair RM750e 80+ Gold"
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Cooling System
+                </label>
+                <Input
+                  value={specs.cooling_solution || ""}
+                  onChange={(e) => handleFieldChange("cooling_solution", e.target.value || null)}
+                  placeholder="e.g. 240mm AIO Liquid or Tower Air"
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: OS & Display Target */}
           <div className="space-y-3 pt-2 border-t border-[#1e2330]">
             <h3 className="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
               <Monitor className="w-4 h-4" />
-              <span>4. Operating System & Monitor Target</span>
+              <span>5. Operating System & Target Display</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -529,7 +685,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.operating_system}
                   onChange={(e) => handleFieldChange("operating_system", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="Windows 11">Windows 11</option>
                   <option value="Windows 10">Windows 10</option>
@@ -541,44 +697,12 @@ export function HardwareInputForm({
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  OS Architecture *
-                </label>
-                <select
-                  value={specs.os_architecture}
-                  onChange={(e) => handleFieldChange("os_architecture", e.target.value as "64-bit" | "32-bit" | "Unknown")}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="64-bit">64-bit (x86_64)</option>
-                  <option value="32-bit">32-bit (x86 - Legacy)</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  DirectX Support
-                </label>
-                <select
-                  value={specs.directx_version || "DirectX 12"}
-                  onChange={(e) => handleFieldChange("directx_version", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="DirectX 12 Ultimate">DirectX 12 Ultimate (Feature Level 12_2)</option>
-                  <option value="DirectX 12">DirectX 12 (Feature Level 12_0)</option>
-                  <option value="DirectX 11">DirectX 11</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   Target Resolution *
                 </label>
                 <select
                   value={specs.display_resolution}
                   onChange={(e) => handleFieldChange("display_resolution", e.target.value)}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="1920x1080">1920x1080 (1080p Full HD)</option>
                   <option value="2560x1440">2560x1440 (1440p Quad HD)</option>
@@ -595,7 +719,7 @@ export function HardwareInputForm({
                 <select
                   value={specs.refresh_rate || 60}
                   onChange={(e) => handleFieldChange("refresh_rate", parseInt(e.target.value, 10))}
-                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500"
+                  className="w-full text-xs rounded-lg bg-[#151926] border border-[#232a3c] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
                   <option value="60">60 Hz Standard</option>
                   <option value="75">75 Hz</option>
@@ -608,8 +732,8 @@ export function HardwareInputForm({
             </div>
           </div>
 
-          {/* Section 5: Save Profile Option */}
-          <div className="pt-3 border-t border-[#1e2330] bg-[#0d1017] p-3.5 rounded-lg">
+          {/* Section 6: Incomplete Rig Indicator & Save Options */}
+          <div className="pt-3 border-t border-[#1e2330] bg-[#0d1017] p-3.5 rounded-lg space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
                 <input
@@ -634,10 +758,24 @@ export function HardwareInputForm({
               )}
             </div>
 
+            {/* Incomplete specification flag */}
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <input
+                type="checkbox"
+                id="is_incomplete_chk"
+                checked={specs.is_incomplete || false}
+                onChange={(e) => handleFieldChange("is_incomplete", e.target.checked)}
+                className="rounded border-[#2b3548] bg-[#141824] text-amber-500 focus:ring-amber-500/20"
+              />
+              <label htmlFor="is_incomplete_chk" className="cursor-pointer text-[11px] text-slate-400">
+                Mark as incomplete configuration (some hardware fields are approximate or unknown)
+              </label>
+            </div>
+
             {!isAuthenticated && (
-              <p className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-400 pt-1 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                <span>Sign in to save this hardware configuration to your player account for 1-click re-testing.</span>
+                <span>Sign in to save multiple PC configurations to your player account history and compare them.</span>
               </p>
             )}
           </div>

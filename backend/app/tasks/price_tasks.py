@@ -1,0 +1,50 @@
+from typing import Any, Dict
+from app.core.database import async_session_factory
+from app.core.logging import logger
+from app.services.price_refresh_service import PriceRefreshService
+from app.workers.celery_app import celery_app, record_task_complete, record_task_start, run_async
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def refresh_prices_task(self, simulate_promotions: bool = False) -> Dict[str, Any]:
+    """Celery background task for automated store price refresh and price drop alert triggering."""
+    task_id = self.request.id or "direct-price-refresh-task"
+    log_id = run_async(record_task_start, "refresh_prices_task", task_id)
+    logger.info(f"[Task:refresh_prices_task] Started (ID: {task_id})")
+
+    async def _execute():
+        async with async_session_factory() as session:
+            return await PriceRefreshService.run_price_refresh(session, simulate_promotions=simulate_promotions)
+
+    try:
+        result = run_async(_execute)
+        run_async(record_task_complete, log_id, "SUCCESS")
+        logger.info(f"[Task:refresh_prices_task] Finished: {result}")
+        return result
+    except Exception as exc:
+        logger.error(f"[Task:refresh_prices_task] Error: {exc}")
+        if self.request.retries < self.max_retries:
+            run_async(record_task_complete, log_id, "RETRY", str(exc), self.request.retries + 1)
+            raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+        run_async(record_task_complete, log_id, "FAILURE", str(exc), self.request.retries)
+        raise exc
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def check_stale_prices_task(self, max_age_hours: int = 48) -> Dict[str, Any]:
+    """Celery background task auditing for observations older than freshness threshold."""
+    task_id = self.request.id or "direct-stale-price-task"
+    log_id = run_async(record_task_start, "check_stale_prices_task", task_id)
+
+    async def _execute():
+        async with async_session_factory() as session:
+            return await PriceRefreshService.check_stale_prices(session, max_age_hours=max_age_hours)
+
+    try:
+        result = run_async(_execute)
+        run_async(record_task_complete, log_id, "SUCCESS")
+        return result
+    except Exception as exc:
+        logger.error(f"[Task:check_stale_prices_task] Error: {exc}")
+        run_async(record_task_complete, log_id, "FAILURE", str(exc), self.request.retries)
+        raise exc

@@ -9,7 +9,11 @@ import {
   Trash2, 
   Upload, 
   X, 
-  Layers 
+  Layers,
+  Zap,
+  Sliders,
+  AlertTriangle,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -21,6 +25,8 @@ interface SavedPCProfilesModalProps {
   profiles: PCHardwareProfile[];
   onSelectProfile: (profile: PCHardwareProfile) => void;
   onDeleteProfile: (profileId: string) => Promise<void>;
+  onSetPrimaryProfile?: (profileId: string) => Promise<void>;
+  onOpenCompare?: () => void;
   isLoading: boolean;
 }
 
@@ -30,6 +36,8 @@ export function SavedPCProfilesModal({
   profiles,
   onSelectProfile,
   onDeleteProfile,
+  onSetPrimaryProfile,
+  onOpenCompare,
   isLoading,
 }: SavedPCProfilesModalProps) {
   if (!isOpen) return null;
@@ -42,16 +50,34 @@ export function SavedPCProfilesModal({
           <div className="flex items-center gap-2.5">
             <Cpu className="w-5 h-5 text-orange-400" />
             <div>
-              <h3 className="text-base font-bold text-white">Saved PC Hardware Profiles</h3>
-              <p className="text-xs text-slate-400">Select a saved rig to load into the compatibility evaluator.</p>
+              <h3 className="text-base font-bold text-white">Saved PC Hardware Configurations</h3>
+              <p className="text-xs text-slate-400">
+                Manage your previous and current gaming rigs ({profiles.length} saved).
+              </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {profiles.length >= 2 && onOpenCompare && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  onOpenCompare();
+                }}
+                className="text-xs gap-1.5 text-sky-300 hover:text-white"
+              >
+                <Sliders className="w-3.5 h-3.5 text-sky-400" />
+                <span>Compare Rigs</span>
+              </Button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -68,16 +94,31 @@ export function SavedPCProfilesModal({
             profiles.map((prof) => (
               <div
                 key={prof.id}
-                className="p-4 rounded-xl bg-[#181d2c] border border-[#263044] hover:border-[#384664] transition-all space-y-3"
+                className={`p-4 rounded-xl border transition-all space-y-3 ${
+                  prof.is_primary
+                    ? "bg-[#182030] border-emerald-500/40"
+                    : "bg-[#181d2c] border-[#263044] hover:border-[#384664]"
+                }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-bold text-white">{prof.profile_name}</h4>
                     {prof.is_primary && (
                       <Badge variant="verified" className="text-[10px]">
                         <Star className="w-3 h-3 fill-emerald-400" />
-                        <span>Primary Rig</span>
+                        <span>Current PC</span>
                       </Badge>
+                    )}
+                    {prof.is_incomplete && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>Incomplete Specs</span>
+                      </span>
+                    )}
+                    {prof.form_factor && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        {prof.form_factor}
+                      </span>
                     )}
                   </div>
                   <span className="text-[11px] text-slate-400">
@@ -91,46 +132,76 @@ export function SavedPCProfilesModal({
                     <span className="truncate">{prof.cpu_manufacturer} {prof.cpu_model}</span>
                   </div>
                   <div className="text-slate-300 flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span className="truncate">{prof.gpu_manufacturer} {prof.gpu_model} ({prof.gpu_vram_gb}GB)</span>
                   </div>
                   <div className="text-slate-400 flex items-center gap-1.5">
-                    <HardDrive className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>{prof.ram_gb}GB RAM | {prof.storage_type.replace('_', ' ')}</span>
+                    <Layers className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span>
+                      {prof.ram_gb}GB {prof.ram_type || "RAM"} {prof.ram_speed_mhz ? `@ ${prof.ram_speed_mhz}MHz` : ""}
+                    </span>
                   </div>
                   <div className="text-slate-400 flex items-center gap-1.5">
-                    <Monitor className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                    <span>{prof.display_resolution} @ {prof.refresh_rate || 60}Hz</span>
+                    <HardDrive className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{prof.storage_type.replace('_', ' ')} ({prof.storage_free_gb}GB Free)</span>
                   </div>
+                  {prof.motherboard_model && (
+                    <div className="text-slate-400 text-[11px] col-span-1 sm:col-span-2">
+                      <span className="text-slate-500">Motherboard:</span> {prof.motherboard_model}
+                    </div>
+                  )}
+                  {prof.psu_wattage && (
+                    <div className="text-slate-400 text-[11px] col-span-1 sm:col-span-2">
+                      <span className="text-slate-500">Power Supply:</span> {prof.psu_wattage}W {prof.psu_model ? `(${prof.psu_model})` : ""}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isLoading}
-                    onClick={() => onDeleteProfile(prof.id)}
-                    className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </Button>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                  <div>
+                    {!prof.is_primary && onSetPrimaryProfile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isLoading}
+                        onClick={() => onSetPrimaryProfile(prof.id)}
+                        className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-1.5"
+                      >
+                        <Star className="w-3.5 h-3.5" />
+                        <span>Set as Current PC</span>
+                      </Button>
+                    )}
+                  </div>
 
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    disabled={isLoading}
-                    onClick={() => {
-                      onSelectProfile(prof);
-                      onClose();
-                    }}
-                    className="text-xs gap-1.5 font-bold"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Load Specifications</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isLoading}
+                      onClick={() => onDeleteProfile(prof.id)}
+                      className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      disabled={isLoading}
+                      onClick={() => {
+                        onSelectProfile(prof);
+                        onClose();
+                      }}
+                      className="text-xs gap-1.5 font-bold"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Load Specifications</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))
@@ -138,7 +209,10 @@ export function SavedPCProfilesModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/5 bg-[#141824] flex justify-end">
+        <div className="p-4 border-t border-white/5 bg-[#141824] flex items-center justify-between">
+          <span className="text-xs text-slate-400">
+            Saved rigs are private to your player account.
+          </span>
           <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
             Close
           </Button>

@@ -85,6 +85,29 @@ from app.schemas.problem_solver import (
     AttachmentUploadResponse,
     AIServiceStatusResponse,
 )
+from app.schemas.automation import (
+    AutomationHealthResponse,
+    WorkerHealthResponse,
+    SchedulerHealthResponse,
+    DataSourceStatusRead,
+    DataSourceStatusSummary,
+    DataIngestionLogRead,
+    DataIngestionHistoryResponse,
+    AutomationJobLogRead,
+    AutomationTaskHistoryResponse,
+    NotificationDeliveryStatusResponse,
+)
+from app.schemas.search import (
+    SearchResultItem,
+    SearchResponse,
+    SearchSuggestionItem,
+    SearchSuggestionsResponse,
+    SearchHistoryItem,
+    SearchHistoryCreate,
+    SearchCategoriesStats,
+    UnifiedSavedItem,
+    UnifiedSavedContentResponse,
+)
 
 __all__ = [
     "ApiResponse",
@@ -164,4 +187,23 @@ __all__ = [
     "AIFeedbackRead",
     "AttachmentUploadResponse",
     "AIServiceStatusResponse",
+    "AutomationHealthResponse",
+    "WorkerHealthResponse",
+    "SchedulerHealthResponse",
+    "DataSourceStatusRead",
+    "DataSourceStatusSummary",
+    "DataIngestionLogRead",
+    "DataIngestionHistoryResponse",
+    "AutomationJobLogRead",
+    "AutomationTaskHistoryResponse",
+    "NotificationDeliveryStatusResponse",
+    "SearchResultItem",
+    "SearchResponse",
+    "SearchSuggestionItem",
+    "SearchSuggestionsResponse",
+    "SearchHistoryItem",
+    "SearchHistoryCreate",
+    "SearchCategoriesStats",
+    "UnifiedSavedItem",
+    "UnifiedSavedContentResponse",
 ]

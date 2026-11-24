@@ -8,8 +8,8 @@ from app.core.database import Base, get_db
 import app.models  # Ensure all model tables are registered in Base.metadata
 from app.main import app
 
-# In-memory SQLite async engine for test isolation
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# In-memory SQLite async engine for test isolation with shared cache
+TEST_DATABASE_URL = "sqlite+aiosqlite:///file:test_memdb?mode=memory&cache=shared&uri=true"
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
@@ -52,7 +52,7 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest_asyncio.fixture
 async def async_client():
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="http://test", headers={"X-Test-Bypass": "true"}) as client:
         yield client
 
 

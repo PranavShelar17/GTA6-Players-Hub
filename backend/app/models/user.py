@@ -77,6 +77,9 @@ class PlayerPreferences(Base):
     news_notifications = Column(Boolean, nullable=False, default=True)
     price_alert_notifications = Column(Boolean, nullable=False, default=True)
     event_notifications = Column(Boolean, nullable=False, default=True)
+    preferred_categories = Column(Text, nullable=True)  # JSON or comma-separated preferred content categories
+    theme = Column(String(20), nullable=False, default="dark")  # dark, light, system
+    content_density = Column(String(20), nullable=False, default="comfortable")  # comfortable, compact
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

@@ -8,7 +8,9 @@ import {
   SlidersHorizontal, 
   Sparkles, 
   CheckCircle2, 
-  AlertTriangle 
+  AlertTriangle,
+  Sliders,
+  Scale
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +23,7 @@ import {
   CompatibilityCheckHistoryItem,
   fetchHardwareProfiles,
   deleteHardwareProfile,
+  setPrimaryHardwareProfile,
   runCompatibilityCheck,
   fetchCompatibilityHistory,
   fetchCompatibilityCheckDetail
@@ -33,6 +36,10 @@ import { HardwareBottleneckAnalysis } from "./HardwareBottleneckAnalysis";
 import { UpgradeGuidanceSection } from "./UpgradeGuidanceSection";
 import { SavedPCProfilesModal } from "./SavedPCProfilesModal";
 import { CompatibilityHistoryModal } from "./CompatibilityHistoryModal";
+import { SmartPCScannerModal } from "./SmartPCScannerModal";
+import { PCProfileCompareModal } from "./PCProfileCompareModal";
+import { Top3RecommendationsSection } from "./Top3RecommendationsSection";
+import { PCRecommendationComparisonTable } from "./PCRecommendationComparisonTable";
 
 interface PCCompatibilityClientProps {
   initialStatus: RequirementsStatusResponse;
@@ -51,10 +58,15 @@ export function PCCompatibilityClient({
   const [history, setHistory] = useState<CompatibilityCheckHistoryItem[]>([]);
   const [activeResult, setActiveResult] = useState<CompatibilityCheckResponse | null>(null);
   const [currentSpecs, setCurrentSpecs] = useState<PCHardwareProfileCreate | undefined>(undefined);
+  const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined);
 
-  // Modals & UI
+  // Modals
   const [isProfilesModalOpen, setIsProfilesModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  // UI status
   const [isLoading, setIsLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "info" | "error"; text: string } | null>(null);
 
@@ -66,6 +78,7 @@ export function PCCompatibilityClient({
       // If user has a primary profile and no active specs set yet, load it
       const primary = data.find((p) => p.is_primary) || data[0];
       if (primary && !currentSpecs) {
+        setActiveProfileId(primary.id);
         setCurrentSpecs({
           profile_name: primary.profile_name,
           cpu_manufacturer: primary.cpu_manufacturer,
@@ -78,9 +91,17 @@ export function PCCompatibilityClient({
           gpu_type: primary.gpu_type,
           ram_gb: primary.ram_gb,
           ram_type: primary.ram_type,
+          ram_speed_mhz: primary.ram_speed_mhz,
+          motherboard_model: primary.motherboard_model,
           storage_type: primary.storage_type,
           storage_capacity_gb: primary.storage_capacity_gb,
           storage_free_gb: primary.storage_free_gb,
+          psu_wattage: primary.psu_wattage,
+          psu_model: primary.psu_model,
+          cooling_solution: primary.cooling_solution,
+          form_factor: primary.form_factor,
+          is_incomplete: primary.is_incomplete,
+          notes: primary.notes,
           operating_system: primary.operating_system,
           os_architecture: primary.os_architecture,
           directx_version: primary.directx_version,
@@ -167,6 +188,7 @@ export function PCCompatibilityClient({
 
   // Profile select
   const handleSelectProfile = (profile: PCHardwareProfile) => {
+    setActiveProfileId(profile.id);
     setCurrentSpecs({
       profile_name: profile.profile_name,
       cpu_manufacturer: profile.cpu_manufacturer,
@@ -179,9 +201,17 @@ export function PCCompatibilityClient({
       gpu_type: profile.gpu_type,
       ram_gb: profile.ram_gb,
       ram_type: profile.ram_type,
+      ram_speed_mhz: profile.ram_speed_mhz,
+      motherboard_model: profile.motherboard_model,
       storage_type: profile.storage_type,
       storage_capacity_gb: profile.storage_capacity_gb,
       storage_free_gb: profile.storage_free_gb,
+      psu_wattage: profile.psu_wattage,
+      psu_model: profile.psu_model,
+      cooling_solution: profile.cooling_solution,
+      form_factor: profile.form_factor,
+      is_incomplete: profile.is_incomplete,
+      notes: profile.notes,
       operating_system: profile.operating_system,
       os_architecture: profile.os_architecture,
       directx_version: profile.directx_version,
@@ -203,10 +233,25 @@ export function PCCompatibilityClient({
       await loadUserProfiles();
       setActionMessage({
         type: "info",
-        text: "Hardware profile deleted.",
+        text: "Hardware profile deleted from your player account.",
       });
     } catch (err) {
       console.error("Failed to delete profile:", err);
+    }
+  };
+
+  // Set primary profile
+  const handleSetPrimaryProfile = async (profileId: string) => {
+    if (!token) return;
+    try {
+      await setPrimaryHardwareProfile(profileId, token);
+      await loadUserProfiles();
+      setActionMessage({
+        type: "success",
+        text: "Updated active primary gaming PC!",
+      });
+    } catch (err) {
+      console.error("Failed to set primary profile:", err);
     }
   };
 
@@ -233,6 +278,44 @@ export function PCCompatibilityClient({
     }
   };
 
+  // Apply auto-detected hardware specs
+  const handleApplyDetectedSpecs = (detected: Partial<PCHardwareProfileCreate>) => {
+    setCurrentSpecs((prev) => ({
+      profile_name: detected.profile_name || prev?.profile_name || "Auto-Detected Rig",
+      cpu_manufacturer: detected.cpu_manufacturer || prev?.cpu_manufacturer || "AMD",
+      cpu_model: detected.cpu_model || prev?.cpu_model || "Ryzen 7 7800X3D",
+      cpu_cores: detected.cpu_cores || prev?.cpu_cores || 8,
+      cpu_threads: detected.cpu_threads || prev?.cpu_threads || 16,
+      gpu_manufacturer: detected.gpu_manufacturer || prev?.gpu_manufacturer || "NVIDIA",
+      gpu_model: detected.gpu_model || prev?.gpu_model || "GeForce RTX 4070 Super",
+      gpu_vram_gb: detected.gpu_vram_gb || prev?.gpu_vram_gb || 12.0,
+      gpu_type: detected.gpu_type || prev?.gpu_type || "DEDICATED",
+      ram_gb: detected.ram_gb || prev?.ram_gb || 32,
+      ram_type: detected.ram_type || prev?.ram_type || "DDR5",
+      ram_speed_mhz: detected.ram_speed_mhz || prev?.ram_speed_mhz || 6000,
+      motherboard_model: detected.motherboard_model || prev?.motherboard_model || null,
+      storage_type: detected.storage_type || prev?.storage_type || "NVME_SSD",
+      storage_capacity_gb: detected.storage_capacity_gb || prev?.storage_capacity_gb || 1000,
+      storage_free_gb: detected.storage_free_gb || prev?.storage_free_gb || 300,
+      psu_wattage: detected.psu_wattage || prev?.psu_wattage || 750,
+      psu_model: detected.psu_model || prev?.psu_model || null,
+      cooling_solution: detected.cooling_solution || prev?.cooling_solution || null,
+      form_factor: detected.form_factor || prev?.form_factor || "DESKTOP",
+      is_incomplete: detected.is_incomplete || false,
+      notes: detected.notes || null,
+      operating_system: detected.operating_system || prev?.operating_system || "Windows 11",
+      os_architecture: detected.os_architecture || prev?.os_architecture || "64-bit",
+      directx_version: detected.directx_version || prev?.directx_version || "DirectX 12 Ultimate",
+      display_resolution: detected.display_resolution || prev?.display_resolution || "2560x1440",
+      refresh_rate: detected.refresh_rate || prev?.refresh_rate || 144,
+      is_primary: false,
+    }));
+    setActionMessage({
+      type: "success",
+      text: "Detected hardware specifications applied to the evaluator form!",
+    });
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Header with Quick Actions */}
@@ -240,20 +323,44 @@ export function PCCompatibilityClient({
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-orange-400 uppercase tracking-wider mb-1.5">
             <Cpu className="w-4 h-4" />
-            <span>Hardware Diagnostics & Compatibility</span>
+            <span>Hardware Diagnostics & Smart Recommendations</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
             PC Compatibility Checker
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Evaluate your system hardware, verify official specification status, detect component bottlenecks, and review hardware upgrade guidance.
+            Evaluate your PC hardware, save previous rigs, compare configurations side-by-side, and explore top 3 verified gaming recommendations.
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Smart Auto-Detect Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsScannerModalOpen(true)}
+            className="gap-2 text-xs border-orange-500/40 text-orange-300 hover:bg-orange-500/10 font-bold"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+            <span>Auto-Scan PC</span>
+          </Button>
+
           {isAuthenticated && (
             <>
+              {/* Compare Saved PCs */}
+              {profiles.length >= 2 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsCompareModalOpen(true)}
+                  className="gap-2 text-xs text-sky-300 hover:text-white"
+                >
+                  <Scale className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Compare My PCs ({profiles.length})</span>
+                </Button>
+              )}
+
               <Button
                 variant="secondary"
                 size="sm"
@@ -332,6 +439,7 @@ export function PCCompatibilityClient({
             onSubmit={handleCheckCompatibility}
             isLoading={isLoading}
             isAuthenticated={isAuthenticated}
+            onOpenScanner={() => setIsScannerModalOpen(true)}
           />
 
           {/* Results Section (When Check Has Run) */}
@@ -344,12 +452,26 @@ export function PCCompatibilityClient({
           )}
         </div>
 
-        {/* Right Sidebar: Active Rig Preview & Check History */}
+        {/* Right Sidebar: Active Rig Preview & Standby Guidance */}
         <div className="space-y-6">
           {activeResult ? (
             <HardwareSummaryCard
               summary={activeResult.hardware_summary}
               checkedAt={activeResult.checked_at}
+            />
+          ) : currentSpecs ? (
+            <HardwareSummaryCard
+              summary={{
+                cpu: `${currentSpecs.cpu_manufacturer} ${currentSpecs.cpu_model}`,
+                gpu: `${currentSpecs.gpu_manufacturer} ${currentSpecs.gpu_model} (${currentSpecs.gpu_vram_gb}GB)`,
+                ram: `${currentSpecs.ram_gb}GB ${currentSpecs.ram_type || "RAM"}`,
+                storage: `${currentSpecs.storage_type.replace('_', ' ')} (${currentSpecs.storage_free_gb}GB Free)`,
+                os: currentSpecs.operating_system,
+                display: `${currentSpecs.display_resolution} @ ${currentSpecs.refresh_rate || 60}Hz`,
+                motherboard: currentSpecs.motherboard_model || undefined,
+                psu: currentSpecs.psu_wattage ? `${currentSpecs.psu_wattage}W ${currentSpecs.psu_model || ""}` : undefined,
+                cooling: currentSpecs.cooling_solution || undefined,
+              }}
             />
           ) : (
             <div className="p-5 rounded-xl border border-[#1e2330] bg-[#11141e] text-slate-400 space-y-3">
@@ -370,15 +492,43 @@ export function PCCompatibilityClient({
         </div>
       </div>
 
+      {/* Top 3 Gaming PC Recommendations Section */}
+      <Top3RecommendationsSection />
+
+      {/* Intelligent User PC Comparison Table & Power Headroom */}
+      <PCRecommendationComparisonTable
+        currentSpecs={currentSpecs}
+        activeProfileId={activeProfileId}
+        token={token}
+      />
+
       {/* Modals */}
+      <SmartPCScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        onApplySpecs={handleApplyDetectedSpecs}
+      />
+
       <SavedPCProfilesModal
         isOpen={isProfilesModalOpen}
         onClose={() => setIsProfilesModalOpen(false)}
         profiles={profiles}
         onSelectProfile={handleSelectProfile}
         onDeleteProfile={handleDeleteProfile}
+        onSetPrimaryProfile={handleSetPrimaryProfile}
+        onOpenCompare={() => setIsCompareModalOpen(true)}
         isLoading={isLoading}
       />
+
+      {token && (
+        <PCProfileCompareModal
+          isOpen={isCompareModalOpen}
+          onClose={() => setIsCompareModalOpen(false)}
+          profiles={profiles}
+          token={token}
+          onProfileUpdated={loadUserProfiles}
+        />
+      )}
 
       <CompatibilityHistoryModal
         isOpen={isHistoryModalOpen}

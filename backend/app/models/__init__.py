@@ -50,6 +50,15 @@ from app.models.problem_solver import (
     AIKnowledgeSource,
     AIKnowledgeDocument,
 )
+from app.models.automation import (
+    AutomationJobLog,
+    DataSourceStatus,
+    DataIngestionLog,
+)
+from app.models.search import (
+    SearchIndex,
+    UserSearchHistory,
+)
 
 __all__ = [
     "PlayerProfile",
@@ -97,4 +106,9 @@ __all__ = [
     "AIResponseFeedback",
     "AIKnowledgeSource",
     "AIKnowledgeDocument",
+    "AutomationJobLog",
+    "DataSourceStatus",
+    "DataIngestionLog",
+    "SearchIndex",
+    "UserSearchHistory",
 ]

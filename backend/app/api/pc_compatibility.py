@@ -4,7 +4,7 @@ Provides endpoints for official requirements status, player hardware profiles,
 hardware balance/bottleneck diagnostics, and compatibility check execution.
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,10 +16,15 @@ from app.schemas.pc_compatibility import (
     CompatibilityCheckRequest,
     CompatibilityCheckResponse,
     GameSystemRequirementRead,
+    GamingPCRecommendationsResponse,
+    PCProfileComparisonRequest,
+    PCProfileComparisonResponse,
     PCHardwareProfileCreate,
     PCHardwareProfileRead,
     PCHardwareProfileUpdate,
     RequirementsStatusResponse,
+    UserPCRecommendationComparisonRequest,
+    UserVsRecommendationComparisonResponse,
 )
 from app.services.pc_compatibility_service import PCCompatibilityService
 
@@ -98,6 +103,63 @@ async def delete_hardware_profile(
     """Deletes a saved hardware profile (ownership enforced)."""
     await PCCompatibilityService.delete_profile(db, profile_id, current_user.id)
     return None
+
+
+@router.post("/profiles/{profile_id}/set-primary", response_model=PCHardwareProfileRead)
+async def set_primary_profile(
+    profile_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Marks a saved configuration as the player's primary / current gaming rig."""
+    return await PCCompatibilityService.set_primary_profile(db, profile_id, current_user.id)
+
+
+@router.post("/profiles/compare", response_model=PCProfileComparisonResponse)
+async def compare_saved_profiles(
+    comparison_req: PCProfileComparisonRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compares 2 or more saved PC configurations belonging to the player and displays hardware deltas."""
+    return await PCCompatibilityService.compare_user_profiles(db, comparison_req.profile_ids, current_user.id)
+
+
+# -----------------------------------------------------------------------------
+# Top 3 Recommendations & Smart Comparison Endpoints
+# -----------------------------------------------------------------------------
+@router.get("/recommendations", response_model=GamingPCRecommendationsResponse)
+async def get_recommended_gaming_pcs(
+    budget: str = Query("ANY", description="Budget filter: ANY, BUDGET, MID, HIGH"),
+    intended_use: str = Query("GTA_6_PREPARATION", description="Gaming use case"),
+    currency: str = Query("USD", description="Currency: USD or INR"),
+):
+    """Returns top 3 curated gaming PC configurations (High-End, Mid-Range, Entry-Level) and personalized match."""
+    return PCCompatibilityService.get_top_3_recommendations(budget=budget, intended_use=intended_use, currency=currency)
+
+
+@router.post("/recommendations/compare", response_model=UserVsRecommendationComparisonResponse)
+async def compare_user_pc_with_recommendations(
+    request: Optional[Dict[str, Any]] = None,
+    current_user: Optional[CurrentUser] = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compares user's current PC against all three recommended gaming configurations with power headroom analysis."""
+    user_id = current_user.id if current_user else None
+    profile_id = None
+    specs = None
+
+    if request:
+        if "profile_id" in request and request["profile_id"]:
+            profile_id = request["profile_id"]
+        if "custom_specs" in request and request["custom_specs"]:
+            specs = PCHardwareProfileCreate(**request["custom_specs"])
+        elif "cpu_model" in request:
+            specs = PCHardwareProfileCreate(**{k: v for k, v in request.items() if k != "profile_id"})
+
+    return await PCCompatibilityService.compare_user_pc_with_recommendations(
+        db, user_id=user_id, profile_id=profile_id, custom_specs=specs
+    )
 
 
 # -----------------------------------------------------------------------------

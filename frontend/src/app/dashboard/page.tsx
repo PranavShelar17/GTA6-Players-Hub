@@ -13,7 +13,9 @@ import {
   Clock,
   Calendar,
   Bell,
-  Users
+  Users,
+  Search,
+  Wrench
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -99,12 +101,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/saved">
+            <Button variant="primary" size="sm" className="flex items-center gap-1.5 shadow-md shadow-orange-500/20">
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>Unified Saved</span>
+            </Button>
+          </Link>
+          <Link href="/search">
+            <Button variant="secondary" size="sm" className="flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5" />
+              <span>Search Hub</span>
+            </Button>
+          </Link>
           <Link href="/profile">
-            <Button variant="outline" size="sm">View Profile</Button>
+            <Button variant="outline" size="sm">Profile</Button>
           </Link>
           <Link href="/settings">
-            <Button variant="secondary" size="sm">Preferences</Button>
+            <Button variant="outline" size="sm">Preferences</Button>
           </Link>
         </div>
       </div>
@@ -448,6 +462,37 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+      </div>
+
+      {/* Cross-Page Quick Access & Unified Saved Hub */}
+      <div className="mb-8 p-6 rounded-2xl border border-[#23293a] bg-[#0c0e16] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Bookmark className="w-5 h-5 text-orange-400" />
+            <h3 className="text-base font-bold text-white">Unified Saved Library</h3>
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              {bookmarks.length + wishlist.length + savedEvents.length + savedDiscussions.length} Total Saved
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            View all your bookmarked news, price wishlists, calendar events, and community threads in one consolidated view.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link href="/saved">
+            <Button variant="primary" size="sm" className="gap-1.5">
+              <span>Open Saved Hub</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+          <Link href="/problem-solver">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Wrench className="w-3.5 h-3.5 text-cyan-400" />
+              <span>AI Problem Solver</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Account Activity Log */}

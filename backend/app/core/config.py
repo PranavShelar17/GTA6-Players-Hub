@@ -24,7 +24,34 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgrespassword@localhost:5435/gta6playerhub"
     # Sync URL for Alembic migrations
     DATABASE_SYNC_URL: str = "postgresql://postgres:postgrespassword@localhost:5435/gta6playerhub"
-    REDIS_URL: str = "redis://localhost:6381/0"
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # Background Workers & Celery Configuration (Phase 10)
+    CELERY_BROKER_URL: Optional[str] = None
+    CELERY_RESULT_BACKEND: Optional[str] = None
+    CELERY_TASK_ALWAYS_EAGER: bool = False
+    AUTOMATION_API_KEY: str = "dev_automation_secret_key_2026_gta6"
+
+    # Automated Scheduling Intervals
+    NEWS_COLLECTION_INTERVAL_MINUTES: int = 30
+    PRICE_REFRESH_INTERVAL_MINUTES: int = 120
+    EVENT_REFRESH_INTERVAL_HOURS: int = 6
+    EVENT_REMINDER_INTERVAL_MINUTES: int = 1
+    NOTIFICATION_RETRY_INTERVAL_MINUTES: int = 5
+    SOURCE_HEALTH_CHECK_INTERVAL_HOURS: int = 24
+    DATA_FRESHNESS_CHECK_INTERVAL_HOURS: int = 24
+
+    # Email & Push Delivery Configuration (Phase 10)
+    EMAIL_PROVIDER: str = "mock"
+    EMAIL_HOST: str = "smtp.example.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USER: Optional[str] = None
+    EMAIL_PASSWORD: Optional[str] = None
+    EMAIL_FROM: str = "alerts@gta6playerhub.com"
+    PUSH_PROVIDER: str = "mock"
+    VAPID_PUBLIC_KEY: Optional[str] = None
+    VAPID_PRIVATE_KEY: Optional[str] = None
+    VAPID_CLAIM_EMAIL: str = "admin@gta6playerhub.com"
 
     # Supabase Integration (Server-side)
     SUPABASE_URL: str = "https://your-project-ref.supabase.co"

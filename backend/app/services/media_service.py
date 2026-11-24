@@ -19,9 +19,24 @@ def ensure_upload_dir():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+def validate_image_magic_bytes(content: bytes, content_type: str) -> bool:
+    """Verifies that raw file bytes match the stated image MIME header signature."""
+    if len(content) < 4:
+        return False
+    ct = content_type.lower()
+    if ct in ("image/jpeg", "image/jpg"):
+        return content.startswith(b"\xff\xd8\xff")
+    elif ct == "image/png":
+        return content.startswith(b"\x89PNG")
+    elif ct == "image/webp":
+        return content[:4] == b"RIFF" and b"WEBP" in content[:16]
+    return True
+
+
 async def save_community_media(file: UploadFile) -> Tuple[str, int, str]:
     """
     Validates and writes uploaded image to local uploads directory.
+    Enforces MIME type check, magic byte signature, and maximum file size (10 MB).
     Returns: (media_url, file_size, media_type)
     """
     content_type = file.content_type or ""
@@ -46,6 +61,12 @@ async def save_community_media(file: UploadFile) -> Tuple[str, int, str]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded file is empty.",
+        )
+
+    if not validate_image_magic_bytes(content, content_type):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content does not match the specified image format signature.",
         )
 
     ext = ALLOWED_MIME_TYPES[content_type.lower()]

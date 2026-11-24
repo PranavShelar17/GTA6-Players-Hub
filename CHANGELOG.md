@@ -7,6 +7,142 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.13.0] - 2026-11-23
+
+### Phase 12: Complete Testing, Quality Assurance, Security Hardening & Performance Optimisation (Completed)
+
+#### Added
+- **Security Response Middleware (`backend/app/middleware/security.py`)**:
+  - `SecurityHeadersMiddleware`: Injects OWASP-standard security response headers across all HTTP responses (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and production `Strict-Transport-Security`).
+  - `RateLimitMiddleware`: In-memory sliding-window rate limiter (240 req/min per client IP) with reverse proxy `X-Forwarded-For` header support and RFC 6585 `429 Too Many Requests` envelope with `Retry-After: 60`.
+- **Media Upload Binary Magic-Bytes Validation (`backend/app/services/media_service.py`)**:
+  - `validate_image_magic_bytes`: Deep-packet inspection of binary streams validating magic bytes for JPEG (`\xff\xd8\xff`), PNG (`\x89PNG`), and WebP (`RIFF...WEBP`) to block disguised executable or script payloads.
+- **Frontend Security Headers (`frontend/next.config.ts`)**:
+  - Configured HTTP security headers for production Next.js delivery including Frame-Options, Content-Type-Options, Referrer-Policy, and Permissions-Policy.
+- **Automated Security Hardening Test Suite (`backend/tests/test_security_hardening.py`)**:
+  - 8 automated tests covering OWASP headers, rate limiting enforcement, SQL injection resistance, IDOR post modification protection, IDOR private AI conversation isolation, IDOR PC hardware profile isolation, XSS payload neutralization, and upload magic bytes validation.
+- **CI/CD Quality & Security Pipeline (`.github/workflows/ci.yml`)**:
+  - GitHub Actions workflow running backend pytest suites against test database/redis services, and frontend linting/production builds.
+- **Phase 12 Comprehensive Documentation Suite**:
+  - `PHASE_12_INITIAL_AUDIT.md`: Project architecture audit, feature completion status, and security assessment.
+  - `PHASE_12_TESTING_STRATEGY.md`: Test dimensions, methodologies, and acceptance criteria.
+  - `PHASE_12_FUNCTIONAL_TEST_REPORT.md`: Functional test results across all 6 core sections + user accounts and automation.
+  - `PHASE_12_SECURITY_AUDIT.md`: OWASP Top 10 evaluation and security controls verification.
+  - `PHASE_12_PERFORMANCE_REPORT.md`: Core Web Vitals assessment, 101 kB shared JS bundle analysis, sub-20ms API latency.
+  - `PHASE_12_ACCESSIBILITY_REPORT.md`: WCAG 2.2 AA audit across responsive breakpoints and keyboard accessibility.
+  - `PHASE_12_BUG_REGISTER.md`: Defect tracking log documenting 8 resolved issues.
+  - `PHASE_12_REGRESSION_REPORT.md`: Regression report verifying all Phase 1–11 features with 112 passing tests.
+  - `PHASE_12_DEPLOYMENT_READINESS.md`: Pre-flight checklist, environment variable audit, and runbooks.
+  - `PHASE_12_COMPLETION_REPORT.md`: Final completion report adhering to Roadmap governance.
+
+---
+
+## [0.12.0] - 2026-11-23
+
+### Phase 11: Global Search, Personalisation & Cross-Page Integration (Completed)
+
+#### Added
+- **Global Search Engine & Database Indexing (`backend/app/models/search.py`, `services/search_service.py`)**:
+  - Relational `search_index` table with compound indices for content lookup, category classification, and publication timeline sorting.
+  - Multi-category search service supporting multi-token full-text queries across News (`NEWS`), Deals (`DEALS`), Events (`EVENTS`), Discussions (`COMMUNITY`), and Troubleshooting Guides (`HELP`).
+  - Privacy safeguards strictly excluding private user data (saved PC hardware profiles, private AI problem solver sessions) and respecting community blocks/mutes.
+  - Verification label preservation (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`).
+  - Autocomplete typeahead suggestion engine with direct entity matching and popular queries fallback.
+  - Private user search history model (`user_search_history`) with user-isolated recording, listing, and clearing.
+  - Celery background task `rebuild_search_index_task` scheduled hourly via Celery Beat on `maintenance_queue`.
+- **Alembic Database Migration & Supabase SQL (`backend/alembic/versions/0009_phase_11_global_search_personalisation.py`, `supabase_search_schema.sql`)**:
+  - Chained migration creating `search_index` and `user_search_history` tables.
+  - Extended `player_preferences` table with `preferred_categories`, `theme`, and `content_density`.
+  - Supabase PostgreSQL schema with RLS policies granting public read for `search_index` and strict user-scoped CRUD for `user_search_history`.
+- **Unified Saved Content Service (`backend/app/services/saved_content_service.py`)**:
+  - Zero-storage-duplication aggregation across existing tables: `news_bookmarks`, `price_wishlist`, `saved_events`, and `community_bookmarks`.
+  - Pagination, tab filtering by type, and dynamic count calculation.
+  - Item removal service (`remove_saved_item`) verifying player ownership before record deletion.
+- **REST API Endpoints (`backend/app/api/search.py`, `users.py`)**:
+  - Global search (`GET /api/v1/search?q=&category=&sort=&page=&page_size=`).
+  - Search autocomplete suggestions (`GET /api/v1/search/suggestions?q=&limit=`).
+  - Category statistics (`GET /api/v1/search/categories`).
+  - User search history (`GET /api/v1/search/recent`, `POST /api/v1/search/recent`, `DELETE /api/v1/search/recent`).
+  - Protected search index re-indexing (`POST /api/v1/search/reindex`).
+  - Unified saved content (`GET /api/v1/users/me/saved?type=&page=&page_size=`).
+  - Saved item removal (`DELETE /api/v1/users/me/saved/{saved_type}/{item_id}`).
+- **Next.js Command Palette & Global Search UI (`frontend/src/components/search/SearchOverlay.tsx`, `SearchResultsClient.tsx`, `app/search/page.tsx`)**:
+  - Command palette modal triggered via `Ctrl+K`, `Cmd+K`, `/`, and header search icon with full keyboard navigation (Up/Down/Enter/Escape).
+  - Dedicated search results page (`/search`) with dynamic category filter pills, multi-attribute sorting dropdown, category-styled result cards, and pagination.
+- **Unified Saved Content Experience (`frontend/src/components/saved/SavedContentClient.tsx`, `app/saved/page.tsx`)**:
+  - Dedicated player route at `/saved` with tabs for All Saved, News Bookmarks, Price Wishlist, Saved Events, and Discussions.
+  - Direct item navigation and optimistic removal with instant feedback.
+- **Personalisation & Platform Integration (`frontend/src/app/settings/page.tsx`, `app/dashboard/page.tsx`, `components/layout/Header.tsx`)**:
+  - Settings page extended with feed topic preferences (multi-checkbox), display theme selector (dark/light/system), and content density selector (comfortable/compact).
+  - Header updated with Quick Search trigger, and user dropdown link to Saved Content.
+  - Dashboard updated with top quick-access links, Unified Saved Library summary widget, and shortcuts to PC hardware specs and AI Problem Solver.
+
+---
+
+## [0.11.0] - 2026-11-23
+
+### Phase 10: Automated Data & Background Services Development (Completed)
+
+#### Added
+- **Central Distributed Architecture & Task Queues (`backend/app/workers/celery_app.py`, `schedules.py`)**:
+  - Celery 5.7+ application configured with Redis broker and result backend.
+  - 6 dedicated queues: `news_queue`, `price_queue`, `event_queue`, `notification_queue`, `ai_queue`, and `maintenance_queue`.
+  - Configurable periodic Celery Beat schedules for 30m news collection, 2h price refreshes, 6h event calendar syncs, 1m reminder processing, 1m outbound notifications, 5m retries, and daily maintenance.
+  - Automatic task execution audit logging in PostgreSQL (`automation_job_logs`).
+- **Database Architecture & Migrations (`backend/app/models/automation.py`, `notification.py`)**:
+  - Entity models for `AutomationJobLog`, `DataSourceStatus`, and `DataIngestionLog`.
+  - Extended `NotificationDelivery` with `provider_reference`, `retry_count`, and `attempted_at`.
+  - Alembic migration `0008_phase_10_automation_background_services.py` chained to `0007_phase_9_ai_problem_solver`.
+  - Supabase PostgreSQL schema `backend/supabase_automation_schema.sql` with RLS policies restricting job logs to authenticated admins and service role callers.
+- **Data Validation & Quality Engine (`backend/app/services/data_validation_service.py`)**:
+  - URL canonicalization, tracking parameter stripping (`utm_*`, `ref`, `fbclid`), and schema enforcement.
+  - Strict decimal pricing validation, genuine discount calculations, and ISO 4217 currency cross-validation against regional markets.
+  - Multi-format timezone normalization converting ISO 8601 and RFC 2822 timestamps to UTC while preserving publisher timezones.
+- **Automated News Ingestion Pipeline (`backend/app/services/news_ingestion_service.py`, `integrations/news_sources.py`)**:
+  - Automated ingestion from official Rockstar Newswire RSS, Take-Two IR, PlayStation Blog, and Xbox Wire.
+  - Strict verification label enforcement (`OFFICIAL`, `VERIFIED`, `RUMOUR`, `UNCONFIRMED`).
+  - Automatic duplicate suppression by canonical URL and title hashing.
+- **Automated Price Refresh & Price Drop Engine (`backend/app/services/price_refresh_service.py`, `integrations/price_sources.py`)**:
+  - Periodic polling across 5 regional markets (IND, USA, GBR, EUR, ARE) and authorized digital storefronts (PS Store, Xbox Marketplace, Steam, Epic Games, Rockstar Store).
+  - Price drop detection comparing against prior observations.
+  - Real-time matching against player target price alerts (`PriceAlert`), recording `PriceAlertEvent`, and dispatching in-app alerts.
+  - Stale price auditing flagging records older than 24 hours.
+- **Event Calendar & Reminder Pipeline (`backend/app/services/event_refresh_service.py`, `integrations/event_sources.py`)**:
+  - Official broadcast, earnings call, and industry showcase synchronization.
+  - Proactive reminder processing evaluating player lead times (15m, 1h, 24h) with single-dispatch guarantees.
+- **Multi-Channel Notification Dispatch (`backend/app/services/notification_delivery_service.py`, `integrations/email_provider.py`, `push_provider.py`)**:
+  - In-app notification creation with instant persistence.
+  - Outbound email delivery supporting Vice City neon HTML templates and plain text fallbacks with user preference adherence.
+  - Browser Web Push notification delivery using W3C Push API and VAPID RFC 8292.
+  - Resilient retry system with exponential backoff and maximum retry thresholds.
+- **AI Problem Solver Background Maintenance (`backend/app/services/ai_background_service.py`)**:
+  - Scheduled RAG troubleshooting knowledge base documentation maintenance and indexing.
+  - Daily conversation volume calculation, feedback helpfulness ratio scoring, and report aggregation.
+- **Protected REST API Endpoints (`backend/app/api/automation.py`)**:
+  - System health status (`GET /api/v1/automation/health`).
+  - Worker node & queue inspection (`GET /api/v1/automation/workers`).
+  - Scheduled beat task inspection (`GET /api/v1/automation/scheduler`).
+  - External source health auditing (`GET /api/v1/automation/sources`).
+  - Ingestion batch history (`GET /api/v1/automation/history/ingestion`).
+  - Task execution logs & traces (`GET /api/v1/automation/history/tasks`).
+  - Delivery statistics (`GET /api/v1/automation/deliveries`).
+  - Manual task triggers (`POST /api/v1/automation/trigger/{job_type}`).
+- **Testing & Verification**:
+  - 13 comprehensive automated unit and integration tests in `backend/tests/test_automation.py`.
+  - 97 of 97 passing tests across the entire backend suite (100% pass rate).
+  - Next.js production build verified clean (25 routes compiled with 0 errors).
+- **Comprehensive Documentation**:
+  - `PHASE_10_COMPLETION_REPORT.md`
+  - `AUTOMATION_ARCHITECTURE.md`
+  - `BACKGROUND_WORKER_SETUP.md`
+  - `CELERY_CONFIGURATION.md`
+  - `AUTOMATED_DATA_SOURCE_DOCUMENTATION.md`
+  - `NOTIFICATION_AUTOMATION_DOCUMENTATION.md`
+  - `AUTOMATION_DEPLOYMENT_GUIDE.md`
+  - `AUTOMATION_TEST_REPORT.md`
+
+---
+
 ## [0.10.0] - 2026-11-22
 
 ### Phase 9: AI Gaming Problem Solver Development (Completed)

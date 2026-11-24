@@ -1,0 +1,380 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { 
+  Cpu, 
+  Zap, 
+  ShieldAlert, 
+  Sparkles, 
+  CheckCircle2, 
+  ArrowUpRight, 
+  HardDrive, 
+  DollarSign, 
+  Sliders, 
+  Info,
+  ChevronDown,
+  Layers
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { 
+  GamingPCRecommendationsResponse, 
+  RecommendedPCBuild, 
+  fetchGamingPCRecommendations 
+} from "@/lib/pcCompatibilityApi";
+
+interface Top3RecommendationsSectionProps {
+  onCompareWithBuild?: (tier: string) => void;
+}
+
+export function Top3RecommendationsSection({
+  onCompareWithBuild,
+}: Top3RecommendationsSectionProps) {
+  const [currency, setCurrency] = useState<"USD" | "INR">("USD");
+  const [selectedBudget, setSelectedBudget] = useState<number | undefined>(undefined);
+  const [intendedUse, setIntendedUse] = useState<string>("GTA_6_PREPARATION");
+  const [data, setData] = useState<GamingPCRecommendationsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expandedTier, setExpandedTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetchGamingPCRecommendations(selectedBudget, intendedUse, currency)
+      .then((res) => {
+        setData(res);
+      })
+      .catch((err) => {
+        console.error("Failed to load recommendations:", err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [selectedBudget, intendedUse, currency]);
+
+  const formatPrice = (usd?: number | null, inr?: number | null) => {
+    if (currency === "INR" && inr) {
+      return `₹${inr.toLocaleString("en-IN")}`;
+    }
+    if (usd) {
+      return `$${usd.toLocaleString("en-US")}`;
+    }
+    return "Market Estimate";
+  };
+
+  return (
+    <section id="gaming-pc-recommendations" className="space-y-6 pt-4 border-t border-[#1e2330]">
+      {/* Header and Disclaimer */}
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-orange-400 uppercase tracking-wider mb-1">
+              <Sparkles className="w-4 h-4" />
+              <span>Planning & Upgrade Benchmarks</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Top 3 Gaming PC Recommendations
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-3xl leading-relaxed">
+              Curated hardware configurations designed with verified component compatibility, balanced CPU-GPU pairing, and realistic 30% PSU safety headroom.
+            </p>
+          </div>
+
+          {/* Currency Toggle */}
+          <div className="flex items-center gap-2 self-start md:self-auto bg-[#131724] p-1 rounded-xl border border-[#232b3c]">
+            <button
+              onClick={() => setCurrency("USD")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                currency === "USD"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              USD ($)
+            </button>
+            <button
+              onClick={() => setCurrency("INR")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                currency === "INR"
+                  ? "bg-orange-500 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              INR (₹)
+            </button>
+          </div>
+        </div>
+
+        {/* Mandatory GTA 6 Planning Notice */}
+        <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <span className="font-bold">Hardware Planning Notice: </span>
+            <span>
+              Official GTA 6 PC system requirements have not been confirmed by Rockstar Games. These PC recommendations are hardware planning estimates and are not guaranteed GTA 6 compatibility results.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Filters: Budget & Intended Use */}
+      <div className="p-4 rounded-xl bg-[#121622] border border-[#20283a] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-center">
+        {/* Budget filter */}
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            Target Budget ({currency})
+          </label>
+          <select
+            value={selectedBudget || ""}
+            onChange={(e) => setSelectedBudget(e.target.value ? Number(e.target.value) : undefined)}
+            className="w-full text-xs rounded-lg bg-[#161a27] border border-[#262f42] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
+          >
+            <option value="">All Tiers (Show All 3 PCs)</option>
+            <option value="750">Entry-Level (~$750 / ₹62k)</option>
+            <option value="1250">Mid-Range Balanced (~$1,250 / ₹1.05L)</option>
+            <option value="2100">High-End Premium (~$2,100 / ₹1.75L+)</option>
+          </select>
+        </div>
+
+        {/* Intended Use filter */}
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            Primary Intended Gaming Use
+          </label>
+          <select
+            value={intendedUse}
+            onChange={(e) => setIntendedUse(e.target.value)}
+            className="w-full text-xs rounded-lg bg-[#161a27] border border-[#262f42] px-3 py-2 text-white focus:outline-none focus:border-orange-500 cursor-pointer"
+          >
+            <option value="GTA_6_PREPARATION">GTA 6 Forward-Looking Preparation</option>
+            <option value="GENERAL_AAA">General AAA High-Fidelity Gaming</option>
+            <option value="COMPETITIVE">Competitive Esports (High FPS / 240Hz)</option>
+            <option value="STREAMING_RECORDING">Gaming + Simultaneous Streaming</option>
+            <option value="CONTENT_CREATION">Gaming + Video Editing / 3D Work</option>
+          </select>
+        </div>
+
+        {/* Quick summary chip */}
+        <div className="sm:col-span-2 lg:col-span-1 p-2.5 rounded-lg bg-[#161b29] border border-white/5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-orange-400" />
+            <span className="text-slate-300 font-medium">3 Configured Builds</span>
+          </div>
+          <span className="text-[11px] text-slate-500 font-mono">November 2026</span>
+        </div>
+      </div>
+
+      {/* Personalized Match Banner */}
+      {data?.personalized_match && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-orange-950/40 via-[#1a1c27] to-slate-900 border border-orange-500/40 space-y-2 animate-fadeIn">
+          <div className="flex items-center gap-2 text-orange-400 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span>Recommended Match for Your Profile</span>
+          </div>
+          <h3 className="text-base font-bold text-white">
+            {data.personalized_match.match_headline}
+          </h3>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {data.personalized_match.rationale}
+          </p>
+          {data.personalized_match.priority_upgrades_from_current.length > 0 && (
+            <div className="pt-1 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-slate-400 font-semibold">Priority Focus:</span>
+              {data.personalized_match.priority_upgrades_from_current.map((focus, idx) => (
+                <span
+                  key={idx}
+                  className="text-[10px] px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                >
+                  {focus}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3 Tier Cards Grid */}
+      {isLoading ? (
+        <div className="text-center py-12 space-y-3">
+          <div className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-400">Loading verified gaming PC configurations...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {data?.recommendations.map((build: RecommendedPCBuild) => {
+            const isExpanded = expandedTier === build.tier;
+            const isHighEnd = build.tier === "HIGH_END";
+            const isMidRange = build.tier === "MID_RANGE";
+
+            return (
+              <div
+                key={build.tier}
+                className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden ${
+                  isHighEnd
+                    ? "bg-[#131726] border-purple-500/40 hover:border-purple-500/60 shadow-lg shadow-purple-950/20"
+                    : isMidRange
+                    ? "bg-[#131826] border-orange-500/40 hover:border-orange-500/60 shadow-lg shadow-orange-950/20"
+                    : "bg-[#121622] border-[#222a3d] hover:border-[#34405c]"
+                }`}
+              >
+                {/* Card Header */}
+                <div className="p-5 border-b border-white/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-full tracking-wider ${
+                        isHighEnd
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                          : isMidRange
+                          ? "bg-orange-500/20 text-orange-300 border border-orange-500/40"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      }`}
+                    >
+                      {build.tier_badge}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      {build.target_resolution}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-white">{build.title}</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {build.purpose}
+                    </p>
+                  </div>
+
+                  {/* Price Banner */}
+                  <div className="pt-2 flex items-baseline justify-between">
+                    <div>
+                      <div className="text-2xl font-black text-white">
+                        {formatPrice(build.price_usd, build.price_inr)}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {build.price_source_date}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-0.5 rounded">
+                      Verified Estimate
+                    </span>
+                  </div>
+                </div>
+
+                {/* Specs Summary */}
+                <div className="p-5 space-y-3 flex-1 text-xs">
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <Cpu className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Processor</div>
+                        <div className="font-semibold text-white">{build.cpu}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Graphics Card</div>
+                        <div className="font-semibold text-white">{build.gpu} ({build.vram})</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <Layers className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Memory & Motherboard</div>
+                        <div className="text-slate-200">{build.ram}</div>
+                        <div className="text-[11px] text-slate-400">{build.motherboard}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <HardDrive className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Storage & Power</div>
+                        <div className="text-slate-200">{build.storage}</div>
+                        <div className="text-[11px] text-slate-400">{build.psu}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Power Draw & Headroom Pill */}
+                  <div className="p-2.5 rounded-lg bg-[#0e121a] border border-white/5 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Estimated Power Draw:</span>
+                      <span className="font-mono font-bold text-slate-200">~{build.estimated_system_power_w}W</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">PSU w/ 30% Headroom:</span>
+                      <span className="font-mono font-bold text-emerald-400">{build.recommended_psu_wattage}W</span>
+                    </div>
+                  </div>
+
+                  {/* Expandable Strengths and Limitations */}
+                  {isExpanded && (
+                    <div className="pt-3 border-t border-white/5 space-y-3 animate-fadeIn text-xs">
+                      <div>
+                        <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                          Key Strengths
+                        </div>
+                        <ul className="space-y-1">
+                          {build.strengths.map((str, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-slate-300 text-[11px]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                              <span>{str}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                          Planning Limitations
+                        </div>
+                        <ul className="space-y-1">
+                          {build.limitations.map((lim, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-slate-400 text-[11px]">
+                              <Info className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                              <span>{lim}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="p-2 rounded bg-black/30 text-[11px] text-slate-400">
+                        <span className="text-slate-300 font-semibold">Upgrade Potential: </span>
+                        {build.upgrade_potential}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Actions */}
+                <div className="p-4 border-t border-white/5 bg-[#10141f] flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setExpandedTier(isExpanded ? null : build.tier)}
+                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold"
+                  >
+                    <span>{isExpanded ? "Less Details" : "More Specs"}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (onCompareWithBuild) onCompareWithBuild(build.tier);
+                      const tableElem = document.getElementById("user-comparison-table");
+                      if (tableElem) tableElem.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="text-xs font-bold gap-1"
+                  >
+                    <span>Compare to My PC</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}

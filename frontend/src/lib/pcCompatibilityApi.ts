@@ -22,9 +22,17 @@ export interface PCHardwareProfile {
   gpu_type: "DEDICATED" | "INTEGRATED";
   ram_gb: number;
   ram_type?: string | null;
+  ram_speed_mhz?: number | null;
+  motherboard_model?: string | null;
   storage_type: "HDD" | "SATA_SSD" | "NVME_SSD";
   storage_capacity_gb?: number | null;
   storage_free_gb: number;
+  psu_wattage?: number | null;
+  psu_model?: string | null;
+  cooling_solution?: string | null;
+  form_factor?: "DESKTOP" | "LAPTOP";
+  is_incomplete?: boolean;
+  notes?: string | null;
   operating_system: string;
   os_architecture: "64-bit" | "32-bit" | "Unknown";
   directx_version?: string | null;
@@ -331,4 +339,190 @@ export async function fetchCompatibilityCheckDetail(
     console.error("Error fetching check detail:", err);
     return null;
   }
+}
+
+// -----------------------------------------------------------------------------
+// PC History & Profile Management
+// -----------------------------------------------------------------------------
+export async function setPrimaryHardwareProfile(
+  profileId: string,
+  token: string
+): Promise<PCHardwareProfile> {
+  const res = await fetch(`${API_BASE_URL}/pc/profiles/${profileId}/set-primary`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to set primary hardware profile");
+  }
+  return await res.json();
+}
+
+export interface PCProfileDifference {
+  component: string;
+  profile_1_name: string;
+  profile_1_value: string;
+  profile_2_name: string;
+  profile_2_value: string;
+  delta_type: "UPGRADE" | "SIDEGRADE" | "DOWNGRADE" | "UNCHANGED";
+  explanation: string;
+}
+
+export interface PCProfileComparisonResponse {
+  profiles: PCHardwareProfile[];
+  differences: PCProfileDifference[];
+  upgrade_summary: string;
+}
+
+export async function compareSavedProfiles(
+  profileIds: string[],
+  token: string
+): Promise<PCProfileComparisonResponse> {
+  const res = await fetch(`${API_BASE_URL}/pc/profiles/compare`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ profile_ids: profileIds }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to compare hardware profiles");
+  }
+  return await res.json();
+}
+
+// -----------------------------------------------------------------------------
+// Top 3 Gaming PC Recommendations & Smart Comparison
+// -----------------------------------------------------------------------------
+export interface RecommendedPCBuild {
+  tier: "HIGH_END" | "MID_RANGE" | "ENTRY_LEVEL";
+  title: string;
+  tier_badge: string;
+  purpose: string;
+  target_resolution: string;
+  cpu: string;
+  gpu: string;
+  vram: string;
+  ram: string;
+  motherboard: string;
+  storage: string;
+  psu: string;
+  cooling: string;
+  case_airflow: string;
+  upgrade_potential: string;
+  estimated_system_power_w: number;
+  recommended_psu_wattage: number;
+  price_usd?: number | null;
+  price_inr?: number | null;
+  price_source_date: string;
+  price_status: "VERIFIED_ESTIMATE" | "PRICE_UNAVAILABLE";
+  strengths: string[];
+  limitations: string[];
+  ideal_for: string[];
+}
+
+export interface PersonalizedMatchRecommendation {
+  recommended_tier: "HIGH_END" | "MID_RANGE" | "ENTRY_LEVEL";
+  budget_category: string;
+  intended_use: string;
+  match_headline: string;
+  rationale: string;
+  priority_upgrades_from_current: string[];
+}
+
+export interface GamingPCRecommendationsResponse {
+  recommendations: RecommendedPCBuild[];
+  personalized_match?: PersonalizedMatchRecommendation | null;
+  currency_requested: string;
+  gta6_disclaimer: string;
+}
+
+export async function fetchGamingPCRecommendations(
+  budget?: number,
+  intendedUse?: string,
+  currency: string = "USD"
+): Promise<GamingPCRecommendationsResponse> {
+  const params = new URLSearchParams();
+  if (budget) params.append("budget", budget.toString());
+  if (intendedUse) params.append("intended_use", intendedUse);
+  if (currency) params.append("currency", currency);
+
+  const res = await fetch(`${API_BASE_URL}/pc/recommendations?${params.toString()}`, {
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to fetch gaming PC recommendations");
+  }
+  return await res.json();
+}
+
+export interface UserVsRecommendationComparisonRow {
+  component: string;
+  user_value: string;
+  entry_level_value: string;
+  mid_range_value: string;
+  high_end_value: string;
+  performance_difference: string;
+  compatibility_status:
+    | "BELOW_ENTRY"
+    | "MEETS_ENTRY"
+    | "MEETS_MID"
+    | "MEETS_HIGH"
+    | "EXCEEDS_ALL";
+  upgrade_priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "OPTIONAL" | "NONE";
+  explanation: string;
+}
+
+export interface PowerHeadroomAnalysis {
+  estimated_user_power_w: number;
+  user_psu_w?: number | null;
+  recommended_psu_with_headroom_w: number;
+  status: "HEALTHY_HEADROOM" | "MARGINAL_HEADROOM" | "DEFICIT_WARNING" | "PSU_UNKNOWN";
+  guidance: string;
+}
+
+export interface UserVsRecommendationComparisonResponse {
+  user_profile_name: string;
+  comparison_table: UserVsRecommendationComparisonRow[];
+  power_analysis: PowerHeadroomAnalysis;
+  overall_assessment: string;
+  gta6_disclaimer: string;
+}
+
+export async function compareUserPCWithRecommendations(
+  params: {
+    profileId?: string;
+    customSpecs?: PCHardwareProfileCreate;
+  },
+  token?: string
+): Promise<UserVsRecommendationComparisonResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/pc/recommendations/compare`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      profile_id: params.profileId || null,
+      custom_specs: params.customSpecs || null,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to compare PC with recommendations");
+  }
+
+  return await res.json();
 }

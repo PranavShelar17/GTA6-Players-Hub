@@ -35,6 +35,9 @@ export interface PlayerPreferences {
   news_notifications: boolean;
   price_alert_notifications: boolean;
   event_notifications: boolean;
+  preferred_categories?: string | null;
+  theme?: string | null;
+  content_density?: string | null;
   created_at?: string;
   updated_at?: string;
 }

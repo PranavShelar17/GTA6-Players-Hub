@@ -39,11 +39,25 @@ class PCHardwareProfile(Base):
     # System Memory (RAM)
     ram_gb = Column(Integer, nullable=False)
     ram_type = Column(String(20), nullable=True)  # DDR3, DDR4, DDR5, Other
+    ram_speed_mhz = Column(Integer, nullable=True)  # e.g. 3200, 3600, 5600, 6000
+
+    # Motherboard
+    motherboard_model = Column(String(150), nullable=True)
 
     # Storage
     storage_type = Column(String(20), nullable=False, default="NVME_SSD")  # HDD, SATA_SSD, NVME_SSD
     storage_capacity_gb = Column(Integer, nullable=True)
     storage_free_gb = Column(Integer, nullable=False)
+
+    # Power Supply (PSU) & Cooling
+    psu_wattage = Column(Integer, nullable=True)  # e.g. 550, 650, 750, 850, 1000
+    psu_model = Column(String(150), nullable=True)
+    cooling_solution = Column(String(100), nullable=True)  # Stock, Air Cooler, 240mm AIO, 360mm AIO, Custom Loop
+
+    # Hardware Classification
+    form_factor = Column(String(30), nullable=False, default="DESKTOP")  # DESKTOP, LAPTOP
+    is_incomplete = Column(Boolean, nullable=False, default=False)
+    notes = Column(Text, nullable=True)
 
     # Operating System & Environment
     operating_system = Column(String(50), nullable=False, default="Windows 11")

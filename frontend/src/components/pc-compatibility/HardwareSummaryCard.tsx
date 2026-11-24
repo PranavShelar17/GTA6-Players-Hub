@@ -7,7 +7,9 @@ import {
   Monitor, 
   Layers, 
   Zap, 
-  Clock 
+  Clock,
+  BatteryCharging,
+  Wind
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
@@ -19,6 +21,10 @@ interface HardwareSummaryCardProps {
     storage?: string;
     os?: string;
     display?: string;
+    motherboard?: string;
+    psu?: string;
+    cooling?: string;
+    form_factor?: string;
     [key: string]: string | undefined;
   };
   checkedAt?: string;
@@ -84,6 +90,27 @@ export function HardwareSummaryCard({ summary, checkedAt }: HardwareSummaryCardP
             </div>
           </div>
         </div>
+
+        {/* Extended Hardware Details if available */}
+        {(summary.motherboard || summary.psu || summary.cooling) && (
+          <div className="pt-2 border-t border-white/5 space-y-1.5 text-[11px] text-slate-400">
+            {summary.motherboard && (
+              <div className="truncate"><span className="text-slate-500">Board:</span> {summary.motherboard}</div>
+            )}
+            {summary.psu && (
+              <div className="truncate flex items-center gap-1">
+                <BatteryCharging className="w-3 h-3 text-amber-400" />
+                <span className="text-slate-500">PSU:</span> {summary.psu}
+              </div>
+            )}
+            {summary.cooling && (
+              <div className="truncate flex items-center gap-1">
+                <Wind className="w-3 h-3 text-sky-400" />
+                <span className="text-slate-500">Cooling:</span> {summary.cooling}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

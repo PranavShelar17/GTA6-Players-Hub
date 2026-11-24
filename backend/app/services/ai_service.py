@@ -509,8 +509,14 @@ class AIService:
                 detail="File size exceeds maximum allowed limit of 10 MB.",
             )
 
-        ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "png"
-        saved_filename = f"{uuid.uuid4().hex}.{ext.lower()}"
+        mime_ext_map = {
+            "image/png": "png",
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/webp": "webp",
+        }
+        ext = mime_ext_map.get(file.content_type.lower(), "png")
+        saved_filename = f"{uuid.uuid4().hex}.{ext}"
         file_path = os.path.join(UPLOAD_DIR, saved_filename)
 
         with open(file_path, "wb") as f:

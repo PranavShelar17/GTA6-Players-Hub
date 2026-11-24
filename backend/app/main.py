@@ -8,6 +8,7 @@ from app.core.logging import logger, setup_logging
 from app.core.database import init_db
 from app.api.router import api_router
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.security import RateLimitMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
@@ -37,6 +38,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Enterprise Security Headers and Rate Limiting Middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=240)
 
 # Register global error handlers adhering to RFC 7807 and universal envelope
 register_error_handlers(app)
